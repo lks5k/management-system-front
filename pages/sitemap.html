@@ -7,12 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #F4F7FA; color: #1A2B3C; }
-    .screen-card { background: white; border: 1px solid #D1DCE5; border-radius: 12px; padding: 20px; transition: all 0.15s; text-decoration: none; color: inherit; display: block; }
-    .screen-card:hover { border-color: #4A7FA5; box-shadow: 0 4px 16px rgba(74,127,165,0.12); transform: translateY(-1px); }
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 500; }
-  </style>
+  <link rel="stylesheet" href="../assets/css/app.css">
 </head>
 <body class="min-h-screen p-8">
   <div class="max-w-6xl mx-auto">
@@ -34,46 +29,24 @@
         Esta página es el índice del prototipo. Cada tarjeta corresponde a una pantalla del sistema. Haz clic para navegar entre ellas.
       </p>
 
-      <!-- Color palette -->
+      <!-- Paleta de colores -->
       <div class="flex items-center gap-2 mt-5 flex-wrap">
-        <span style="color: #1A2B3C;" class="text-xs font-semibold mr-1">Paleta de colores:</span>
-        <div class="flex items-center gap-1.5">
-          <div class="w-6 h-6 rounded-md border border-gray-200" style="background: #FFFFFF;" title="#FFFFFF"></div>
-          <span class="text-xs text-gray-500">#FFFFFF Fondo</span>
-        </div>
-        <div class="flex items-center gap-1.5 ml-2">
-          <div class="w-6 h-6 rounded-md" style="background: #F4F7FA; border: 1px solid #D1DCE5;"></div>
-          <span class="text-xs text-gray-500">#F4F7FA Secundario</span>
-        </div>
-        <div class="flex items-center gap-1.5 ml-2">
-          <div class="w-6 h-6 rounded-md" style="background: #E8EEF4; border: 1px solid #D1DCE5;"></div>
-          <span class="text-xs text-gray-500">#E8EEF4 Sidebar</span>
-        </div>
-        <div class="flex items-center gap-1.5 ml-2">
-          <div class="w-6 h-6 rounded-md" style="background: #4A7FA5;"></div>
-          <span class="text-xs text-gray-500">#4A7FA5 Primario</span>
-        </div>
-        <div class="flex items-center gap-1.5 ml-2">
-          <div class="w-6 h-6 rounded-md" style="background: #2C5F7A;"></div>
-          <span class="text-xs text-gray-500">#2C5F7A CTA</span>
-        </div>
-        <div class="flex items-center gap-1.5 ml-2">
-          <div class="w-6 h-6 rounded-md" style="background: #1A2B3C;"></div>
-          <span class="text-xs text-gray-500">#1A2B3C Texto</span>
-        </div>
-        <div class="flex items-center gap-1.5 ml-2">
-          <div class="w-6 h-6 rounded-md" style="background: #D1DCE5; border: 1px solid #ccc;"></div>
-          <span class="text-xs text-gray-500">#D1DCE5 Borde</span>
-        </div>
+        <span style="color: #1A2B3C;" class="text-xs font-semibold mr-1">Paleta:</span>
+        <div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-md border border-gray-200" style="background: #FFFFFF;"></div><span class="text-xs text-gray-500">#FFFFFF Fondo</span></div>
+        <div class="flex items-center gap-1.5 ml-2"><div class="w-6 h-6 rounded-md" style="background: #F4F7FA; border: 1px solid #D1DCE5;"></div><span class="text-xs text-gray-500">#F4F7FA Secundario</span></div>
+        <div class="flex items-center gap-1.5 ml-2"><div class="w-6 h-6 rounded-md" style="background: #E8EEF4; border: 1px solid #D1DCE5;"></div><span class="text-xs text-gray-500">#E8EEF4 Sidebar</span></div>
+        <div class="flex items-center gap-1.5 ml-2"><div class="w-6 h-6 rounded-md" style="background: #4A7FA5;"></div><span class="text-xs text-gray-500">#4A7FA5 Primario</span></div>
+        <div class="flex items-center gap-1.5 ml-2"><div class="w-6 h-6 rounded-md" style="background: #2C5F7A;"></div><span class="text-xs text-gray-500">#2C5F7A CTA</span></div>
+        <div class="flex items-center gap-1.5 ml-2"><div class="w-6 h-6 rounded-md" style="background: #1A2B3C;"></div><span class="text-xs text-gray-500">#1A2B3C Texto</span></div>
+        <div class="flex items-center gap-1.5 ml-2"><div class="w-6 h-6 rounded-md" style="background: #D1DCE5; border: 1px solid #ccc;"></div><span class="text-xs text-gray-500">#D1DCE5 Borde</span></div>
       </div>
     </div>
 
-    <!-- Screen groups -->
     <!-- Autenticación -->
     <div class="mb-8">
-      <h2 style="color: #1A2B3C;" class="text-xs font-bold uppercase tracking-widest mb-3" style="color: #4A7FA5;">Autenticación</h2>
+      <h2 class="text-xs font-bold uppercase tracking-widest mb-3" style="color: #4A7FA5;">Autenticación</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <a href="login.html" class="screen-card">
+        <a href="../index.html" class="screen-card">
           <div class="flex items-start justify-between mb-3">
             <div style="background-color: #E8EEF4;" class="w-10 h-10 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5" style="color: #4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75">
@@ -83,7 +56,7 @@
             <span class="tag" style="background:#E8EEF4; color:#4A7FA5;">01</span>
           </div>
           <h3 style="color: #1A2B3C;" class="font-semibold text-sm mb-1">Login</h3>
-          <p class="text-xs text-gray-500">Autenticación con correo y contraseña. Roles: Administrador y Asesor.</p>
+          <p class="text-xs text-gray-500">Autenticación con 6 roles: SuperAdmin, Admin, Gerente, Operador, Oficial, Asesor.</p>
         </a>
       </div>
     </div>
@@ -135,7 +108,7 @@
             <span class="tag" style="background:#E8EEF4; color:#4A7FA5;">04</span>
           </div>
           <h3 style="color: #1A2B3C;" class="font-semibold text-sm mb-1">Empresa — Crear / Editar</h3>
-          <p class="text-xs text-gray-500">Formulario con validación de NIT único, campos requeridos y relaciones.</p>
+          <p class="text-xs text-gray-500">Formulario con validación de NIT único (RN-04), campos requeridos y relaciones.</p>
         </a>
 
         <a href="contactos.html" class="screen-card">
@@ -161,7 +134,7 @@
             <span class="tag" style="background:#E8EEF4; color:#4A7FA5;">06</span>
           </div>
           <h3 style="color: #1A2B3C;" class="font-semibold text-sm mb-1">Contacto — Crear / Editar</h3>
-          <p class="text-xs text-gray-500">Formulario con selección de empresa, validación de correo y cargo.</p>
+          <p class="text-xs text-gray-500">Formulario con selección de empresa, validación de correo (RN-05) y cargo.</p>
         </a>
 
         <a href="marcas.html" class="screen-card">

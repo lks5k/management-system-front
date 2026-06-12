@@ -1,0 +1,182 @@
+/* ============================================================
+   IMSAS · Sistema de Gestión de Producción
+   app.css — Estilos compartidos del prototipo V1
+   ============================================================ */
+
+/* ----- Base ----- */
+[x-cloak] { display: none !important; }
+
+* { font-family: 'Inter', sans-serif; }
+
+body { background-color: #F4F7FA; color: #1A2B3C; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: #D1DCE5; border-radius: 3px; }
+
+/* ----- Sidebar ----- */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all 0.15s;
+  color: #1A2B3C;
+  text-decoration: none;
+}
+.sidebar-link:hover { background-color: #D1DCE5; }
+.sidebar-link.active { background-color: #4A7FA5; color: white; }
+.sidebar-link.active svg { color: white !important; }
+
+/* ----- Formularios ----- */
+.input-field {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #D1DCE5;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  color: #1A2B3C;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-field:focus {
+  border-color: #4A7FA5;
+  box-shadow: 0 0 0 3px rgba(74, 127, 165, 0.1);
+}
+.input-field.error {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: #1A2B3C;
+}
+
+/* ----- Badges / Chips ----- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ----- Dashboard KPI cards ----- */
+.kpi-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #D1DCE5;
+  padding: 20px 24px;
+}
+
+/* ----- Solicitud crear: secciones del formulario ----- */
+.section-card {
+  background: white;
+  border: 1px solid #D1DCE5;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A2B3C;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #D1DCE5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #4A7FA5;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ----- Solicitud detalle: tabs ----- */
+.tab-btn {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  color: #6B7280;
+  cursor: pointer;
+  white-space: nowrap;
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.tab-btn.active { color: #4A7FA5; border-bottom-color: #4A7FA5; }
+.tab-btn:hover:not(.active) { color: #1A2B3C; }
+
+/* ----- Solicitud detalle: filas de campo ----- */
+.field-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #F4F7FA;
+  align-items: start;
+}
+.field-label { font-size: 12px; color: #6B7280; font-weight: 500; padding-top: 1px; }
+.field-value { font-size: 13px; color: #1A2B3C; font-weight: 400; }
+
+/* ----- Sitemap: cards de pantalla ----- */
+.screen-card {
+  background: white;
+  border: 1px solid #D1DCE5;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.15s;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.screen-card:hover {
+  border-color: #4A7FA5;
+  box-shadow: 0 4px 16px rgba(74, 127, 165, 0.12);
+  transform: translateY(-1px);
+}
+
+/* ----- Sitemap: tags de número de pantalla ----- */
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ----- Login: input específico (con padding-right para el toggle) ----- */
+.login-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #D1DCE5;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  color: #1A2B3C;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.login-input:focus { border-color: #4A7FA5; box-shadow: 0 0 0 3px rgba(74, 127, 165, 0.12); }
+.login-input.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }

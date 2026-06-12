@@ -8,16 +8,8 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    [x-cloak] { display: none !important; }
-    body { font-family: 'Inter', sans-serif; background-color: #F4F7FA; color: #1A2B3C; }
-    .input-field {
-      width: 100%; padding: 10px 12px; border: 1.5px solid #D1DCE5; border-radius: 8px;
-      font-size: 14px; background: white; color: #1A2B3C; outline: none; transition: border-color 0.15s;
-    }
-    .input-field:focus { border-color: #4A7FA5; box-shadow: 0 0 0 3px rgba(74,127,165,0.12); }
-    .input-field.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
-  </style>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="assets/js/app.js"></script>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4" style="background-color: #F4F7FA;">
 
@@ -40,15 +32,27 @@
         if (!this.validate()) return;
         this.loading = true;
         this.showError = false;
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise(r => setTimeout(r, 900));
         this.loading = false;
-        if (this.email === 'admin@imsas.com' && this.password === '123456') {
-          window.location.href = 'dashboard.html';
+        const session = imsasLogin(this.email, this.password);
+        if (session) {
+          window.location.href = 'pages/dashboard.html';
         } else {
           this.showError = true;
         }
+      },
+      fillCredential(email, password) {
+        this.email = email;
+        this.password = password;
+        this.showError = false;
+        this.errors = {};
+      },
+      init() {
+        const session = imsasGetSession();
+        if (session) window.location.href = 'pages/dashboard.html';
       }
     }"
+    x-init="init()"
     class="w-full max-w-sm"
   >
 
@@ -95,8 +99,8 @@
             x-model="email"
             @blur="validate()"
             :class="errors.email ? 'error' : ''"
-            class="input-field"
-            placeholder="usuario@empresa.com"
+            class="login-input"
+            placeholder="usuario@imsas.com"
             autocomplete="email"
           >
           <p x-show="errors.email" x-text="errors.email" class="text-xs mt-1.5" style="color: #EF4444;"></p>
@@ -113,7 +117,7 @@
               x-model="password"
               @blur="validate()"
               :class="errors.password ? 'error' : ''"
-              class="input-field pr-10"
+              class="login-input pr-10"
               placeholder="••••••••"
               autocomplete="current-password"
             >
@@ -155,14 +159,78 @@
       </form>
     </div>
 
-    <!-- Hint for prototype -->
-    <div class="mt-4 p-3 rounded-lg text-center" style="background-color: #E8EEF4; border: 1px solid #D1DCE5;">
-      <p class="text-xs" style="color: #4A7FA5; font-weight: 500;">Credenciales de prueba</p>
-      <p class="text-xs mt-0.5" style="color: #1A2B3C;">admin@imsas.com · 123456</p>
+    <!-- Credenciales de prueba — 6 roles -->
+    <div class="mt-4 p-4 rounded-xl" style="background-color: #E8EEF4; border: 1px solid #D1DCE5;">
+      <p class="text-xs font-semibold mb-3 text-center" style="color: #4A7FA5;">
+        Credenciales de prueba — clic para autocompletar
+      </p>
+      <div class="space-y-1.5">
+
+        <button type="button" @click="fillCredential('superadmin@imsas.com','superadmin123')"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors bg-white hover:bg-[#F4F7FA]"
+                style="border:1px solid #D1DCE5;">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#1A2B3C;">SA</span>
+            <span style="color:#1A2B3C;">superadmin@imsas.com</span>
+          </div>
+          <span style="color:#9CA3AF;">Super Admin</span>
+        </button>
+
+        <button type="button" @click="fillCredential('admin@imsas.com','admin123')"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors bg-white hover:bg-[#F4F7FA]"
+                style="border:1px solid #D1DCE5;">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#2C5F7A;">AM</span>
+            <span style="color:#1A2B3C;">admin@imsas.com</span>
+          </div>
+          <span style="color:#9CA3AF;">Administrador</span>
+        </button>
+
+        <button type="button" @click="fillCredential('manager@imsas.com','manager123')"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors bg-white hover:bg-[#F4F7FA]"
+                style="border:1px solid #D1DCE5;">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#4A7FA5;">MT</span>
+            <span style="color:#1A2B3C;">manager@imsas.com</span>
+          </div>
+          <span style="color:#9CA3AF;">Gerente</span>
+        </button>
+
+        <button type="button" @click="fillCredential('operator@imsas.com','operator123')"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors bg-white hover:bg-[#F4F7FA]"
+                style="border:1px solid #D1DCE5;">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#059669;">OR</span>
+            <span style="color:#1A2B3C;">operator@imsas.com</span>
+          </div>
+          <span style="color:#9CA3AF;">Operador</span>
+        </button>
+
+        <button type="button" @click="fillCredential('officer@imsas.com','officer123')"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors bg-white hover:bg-[#F4F7FA]"
+                style="border:1px solid #D1DCE5;">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#D97706;">FR</span>
+            <span style="color:#1A2B3C;">officer@imsas.com</span>
+          </div>
+          <span style="color:#9CA3AF;">Oficial Comercial</span>
+        </button>
+
+        <button type="button" @click="fillCredential('sales-rep@imsas.com','salesrep123')"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors bg-white hover:bg-[#F4F7FA]"
+                style="border:1px solid #D1DCE5;">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#7C3AED;">SG</span>
+            <span style="color:#1A2B3C;">sales-rep@imsas.com</span>
+          </div>
+          <span style="color:#9CA3AF;">Asesor Comercial</span>
+        </button>
+
+      </div>
     </div>
 
     <!-- Footer -->
-    <p class="text-center text-xs mt-6" style="color: #9CA3AF;">
+    <p class="text-center text-xs mt-5" style="color: #9CA3AF;">
       IMSAS · Sistema de Gestión de Producción · V1
     </p>
 

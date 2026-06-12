@@ -8,16 +8,13 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    [x-cloak]{display:none!important;} *{font-family:'Inter',sans-serif;} body{background-color:#F4F7FA;color:#1A2B3C;}
-    .sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:500;transition:all 0.15s;color:#1A2B3C;text-decoration:none;}
-    .sidebar-link:hover{background-color:#D1DCE5;} .sidebar-link.active{background-color:#4A7FA5;color:white;}
-    ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:#D1DCE5;border-radius:3px;}
-  </style>
+  <link rel="stylesheet" href="../assets/css/app.css">
+  <script src="../assets/js/app.js"></script>
 </head>
 <body>
 <div class="flex h-screen overflow-hidden"
   x-data="{
+    sidebarOpen: window.innerWidth >= 1024,
     search: '',
     estadoFilter: '',
     empresaFilter: '',
@@ -60,7 +57,16 @@
   }">
 
   <!-- SIDEBAR -->
+  <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
+       class="fixed inset-0 z-20 bg-black/30 lg:hidden"></div>
   <aside class="flex-shrink-0 flex flex-col h-screen fixed top-0 left-0 z-30 overflow-y-auto"
+         x-show="sidebarOpen" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="-translate-x-full"
+         x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="translate-x-0"
+         x-transition:leave-end="-translate-x-full"
          style="width:240px;background-color:#E8EEF4;border-right:1px solid #D1DCE5;">
     <div class="h-16 flex items-center px-4 gap-3 flex-shrink-0" style="border-bottom:1px solid #D1DCE5;">
       <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background-color:#4A7FA5;">
@@ -82,19 +88,27 @@
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color:#4A7FA5;">AM</div>
         <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;">Ana Martínez</p><p class="text-xs" style="color:#4A7FA5;">Administrador</p></div>
-        <a href="login.html"><svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></a>
+        <button @click="imsasLogout()" title="Cerrar sesión"><svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
       </div>
     </div>
   </aside>
 
   <!-- MAIN -->
-  <div class="flex-1 flex flex-col overflow-hidden" style="margin-left:240px;">
-    <header class="h-16 flex items-center justify-between px-6 flex-shrink-0" style="background:white;border-bottom:1px solid #D1DCE5;">
-      <div>
-        <h1 class="text-base font-semibold" style="color:#1A2B3C;">Solicitudes de Producción</h1>
-        <nav class="text-xs flex items-center gap-1" style="color:#9CA3AF;">
-          <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span><span>Solicitudes</span>
-        </nav>
+  <div class="flex-1 flex flex-col overflow-hidden ml-0 lg:ml-60">
+    <header class="h-16 flex items-center justify-between px-4 lg:px-6 flex-shrink-0" style="background:white;border-bottom:1px solid #D1DCE5;">
+      <div class="flex items-center gap-3">
+        <button @click="sidebarOpen = !sidebarOpen"
+                class="lg:hidden p-1.5 rounded-lg -ml-1" style="color:#4A7FA5;">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-base font-semibold" style="color:#1A2B3C;">Solicitudes de Producción</h1>
+          <nav class="text-xs flex items-center gap-1" style="color:#9CA3AF;">
+            <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span><span>Solicitudes</span>
+          </nav>
+        </div>
       </div>
       <a href="solicitud-crear.html" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
