@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitud P-S0147 — IMSAS Gestión</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    [x-cloak]{display:none!important;} *{font-family:'Inter',sans-serif;} body{background-color:#F4F7FA;color:#1A2B3C;}
+    .sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:500;transition:all 0.15s;color:#1A2B3C;text-decoration:none;}
+    .sidebar-link:hover{background-color:#D1DCE5;} .sidebar-link.active{background-color:#4A7FA5;color:white;}
+    .tab-btn{padding:10px 16px;font-size:13px;font-weight:500;border-bottom:2px solid transparent;transition:all 0.15s;color:#6B7280;cursor:pointer;white-space:nowrap;}
+    .tab-btn.active{color:#4A7FA5;border-bottom-color:#4A7FA5;}
+    .tab-btn:hover:not(.active){color:#1A2B3C;}
+    .field-row{display:grid;grid-template-columns:140px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #F4F7FA;align-items:start;}
+    .field-label{font-size:12px;color:#6B7280;font-weight:500;padding-top:1px;}
+    .field-value{font-size:13px;color:#1A2B3C;font-weight:400;}
+    ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:#D1DCE5;border-radius:3px;}
+  </style>
+</head>
+<body>
+<div class="flex h-screen overflow-hidden"
+  x-data="{
+    activeTab: 'general',
+    estado: 'PENDIENTE',
+    showStatusModal: false,
+    showCancelModal: false,
+    newStatus: '',
+    cancelObs: '',
+    cancelObsError: false,
+    estadoColors: {
+      'BORRADOR': { bg:'#F3F4F6', color:'#6B7280' },
+      'PENDIENTE': { bg:'#FEF3C7', color:'#D97706' },
+      'CONFIRMADA': { bg:'#D1FAE5', color:'#059669' },
+      'CANCELADA': { bg:'#FEE2E2', color:'#DC2626' },
+    },
+    transiciones: {
+      'BORRADOR': ['PENDIENTE'],
+      'PENDIENTE': ['CONFIRMADA','CANCELADA'],
+      'CONFIRMADA': ['CANCELADA'],
+      'CANCELADA': [],
+    },
+    get nextStatuses() { return this.transiciones[this.estado] || []; },
+    changeStatus(s) {
+      if (s === 'CANCELADA') { this.newStatus = s; this.showStatusModal = false; this.showCancelModal = true; }
+      else { this.estado = s; this.showStatusModal = false; }
+    },
+    confirmCancel() {
+      if (!this.cancelObs.trim()) { this.cancelObsError = true; return; }
+      this.estado = 'CANCELADA';
+      this.showCancelModal = false;
+      this.cancelObsError = false;
+    },
+    historial: [
+      { estado:'BORRADOR', fecha:'09 Jun 2026 14:22', usuario:'Carlos P.', obs:'' },
+      { estado:'PENDIENTE', fecha:'11 Jun 2026 09:15', usuario:'Ana M.', obs:'' },
+    ],
+    historialColors: {
+      'BORRADOR': { bg:'#F3F4F6', color:'#6B7280', dot:'#9CA3AF' },
+      'PENDIENTE': { bg:'#FEF3C7', color:'#D97706', dot:'#FBBF24' },
+      'CONFIRMADA': { bg:'#D1FAE5', color:'#059669', dot:'#34D399' },
+      'CANCELADA': { bg:'#FEE2E2', color:'#DC2626', dot:'#F87171' },
+    }
+  }">
+
+  <!-- SIDEBAR -->
+  <aside class="flex-shrink-0 flex flex-col h-screen fixed top-0 left-0 z-30 overflow-y-auto"
+         style="width:240px;background-color:#E8EEF4;border-right:1px solid #D1DCE5;">
+    <div class="h-16 flex items-center px-4 gap-3 flex-shrink-0" style="border-bottom:1px solid #D1DCE5;">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background-color:#4A7FA5;">
+        <svg class="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      </div>
+      <div><p class="text-sm font-bold" style="color:#1A2B3C;">IMSAS</p><p class="text-xs" style="color:#4A7FA5;">Gestión de Producción</p></div>
+    </div>
+    <nav class="flex-1 py-4 px-3 space-y-1">
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mb-2" style="color:#4A7FA5;opacity:.7;">Principal</p>
+      <a href="dashboard.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Maestros</p>
+      <a href="empresas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Empresas</a>
+      <a href="contactos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Contactos</a>
+      <a href="marcas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>Marcas</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Operaciones</p>
+      <a href="solicitudes.html" class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Solicitudes</a>
+    </nav>
+    <div class="p-3" style="border-top:1px solid #D1DCE5;">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color:#4A7FA5;">AM</div>
+        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;">Ana Martínez</p><p class="text-xs" style="color:#4A7FA5;">Administrador</p></div>
+        <a href="login.html"><svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col overflow-hidden" style="margin-left:240px;">
+
+    <!-- Header -->
+    <header class="flex-shrink-0 px-6 pt-5 pb-0" style="background:white;border-bottom:1px solid #D1DCE5;">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <nav class="text-xs flex items-center gap-1 mb-2" style="color:#9CA3AF;">
+            <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span>
+            <a href="solicitudes.html" style="color:#4A7FA5;">Solicitudes</a><span>/</span><span>P-S0147</span>
+          </nav>
+          <div class="flex items-center gap-3">
+            <h1 class="text-xl font-bold font-mono" style="color:#1A2B3C;">P-S0147</h1>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold"
+                  :style="`background:${estadoColors[estado].bg};color:${estadoColors[estado].color};`"
+                  x-text="estado"></span>
+          </div>
+          <p class="text-xs mt-1" style="color:#6B7280;">FANALCA S.A. · HONDA · Etiquetas tejidas · 5,000 uds</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2">
+          <!-- Change status -->
+          <div class="relative" x-show="nextStatuses.length > 0">
+            <button @click="showStatusModal = !showStatusModal"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                    style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
+                    onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
+              <svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Cambiar estado
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <!-- Dropdown -->
+            <div x-show="showStatusModal" x-cloak @click.outside="showStatusModal=false"
+                 x-transition class="absolute right-0 mt-1 bg-white rounded-xl shadow-lg py-1 z-20 min-w-36"
+                 style="border:1px solid #D1DCE5;">
+              <template x-for="s in nextStatuses" :key="s">
+                <button @click="changeStatus(s)"
+                        class="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors"
+                        style="color:#1A2B3C;"
+                        onmouseover="this.style.backgroundColor='#F4F7FA'" onmouseout="this.style.backgroundColor=''"
+                        x-text="s"></button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Edit (disabled if cancelled) -->
+          <template x-if="estado !== 'CANCELADA'">
+            <a href="solicitud-crear.html"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+               style="background-color:#2C5F7A;"
+               onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              Editar
+            </a>
+          </template>
+          <template x-if="estado === 'CANCELADA'">
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed"
+                  style="background-color:#F3F4F6;color:#9CA3AF;">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              Editar
+            </span>
+          </template>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex items-center gap-0 -mb-px overflow-x-auto">
+        <button class="tab-btn" :class="activeTab === 'general' ? 'active' : ''" @click="activeTab = 'general'">
+          Datos generales
+        </button>
+        <button class="tab-btn" :class="activeTab === 'corporativos' ? 'active' : ''" @click="activeTab = 'corporativos'">
+          Archivos corporativos
+        </button>
+        <button class="tab-btn" :class="activeTab === 'propios' ? 'active' : ''" @click="activeTab = 'propios'">
+          Archivos de solicitud
+        </button>
+        <button class="tab-btn" :class="activeTab === 'historial' ? 'active' : ''" @click="activeTab = 'historial'">
+          Historial
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto p-6">
+
+      <!-- TAB: General -->
+      <div x-show="activeTab === 'general'" x-cloak>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- Main info -->
+          <div class="lg:col-span-2 bg-white rounded-xl p-6" style="border:1px solid #D1DCE5;">
+            <h2 class="text-sm font-semibold mb-4 pb-3" style="color:#1A2B3C;border-bottom:1px solid #D1DCE5;">Información de la solicitud</h2>
+            <div class="space-y-0">
+              <div class="field-row"><span class="field-label">Código</span><span class="field-value font-mono font-bold" style="color:#2C5F7A;">P-S0147</span></div>
+              <div class="field-row"><span class="field-label">Estado</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                      :style="`background:${estadoColors[estado].bg};color:${estadoColors[estado].color};`"
+                      x-text="estado"></span>
+              </div>
+              <div class="field-row"><span class="field-label">Asesor</span><span class="field-value">Carlos Pérez</span></div>
+              <div class="field-row"><span class="field-label">Fecha creación</span><span class="field-value">09 Jun 2026</span></div>
+              <div class="field-row"><span class="field-label">Última modificación</span><span class="field-value">11 Jun 2026</span></div>
+            </div>
+
+            <h2 class="text-sm font-semibold mt-6 mb-4 pb-3" style="color:#1A2B3C;border-bottom:1px solid #D1DCE5;">Cliente</h2>
+            <div class="space-y-0">
+              <div class="field-row"><span class="field-label">Empresa</span><a href="empresa-form.html" class="field-value font-medium" style="color:#4A7FA5;">FANALCA S.A.</a></div>
+              <div class="field-row"><span class="field-label">NIT</span><span class="field-value font-mono text-xs">890.900.513-7</span></div>
+              <div class="field-row"><span class="field-label">Contacto</span><span class="field-value">Laura Martínez</span></div>
+              <div class="field-row"><span class="field-label">Cargo</span><span class="field-value text-gray-500">Compradora</span></div>
+              <div class="field-row"><span class="field-label">Marca</span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold" style="background-color:#E8EEF4;color:#1A2B3C;">
+                  <svg class="w-3 h-3" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+                  HONDA
+                </span>
+              </div>
+            </div>
+
+            <h2 class="text-sm font-semibold mt-6 mb-4 pb-3" style="color:#1A2B3C;border-bottom:1px solid #D1DCE5;">Especificaciones de producción</h2>
+            <div class="space-y-0">
+              <div class="field-row"><span class="field-label">Producto</span><span class="field-value font-medium">Etiqueta tejida</span></div>
+              <div class="field-row"><span class="field-label">Cantidad</span><span class="field-value">5,000 unidades</span></div>
+              <div class="field-row"><span class="field-label">Técnica</span><span class="field-value">Tejido jacquard</span></div>
+              <div class="field-row"><span class="field-label">Material</span><span class="field-value">Satén polyester</span></div>
+              <div class="field-row"><span class="field-label">Medidas</span><span class="field-value">3 cm × 5 cm</span></div>
+              <div class="field-row"><span class="field-label">Colores</span><span class="field-value">2 colores — Pantone 286C / Blanco</span></div>
+              <div class="field-row" style="border:none;padding-bottom:0;">
+                <span class="field-label">Observaciones</span>
+                <p class="field-value text-xs leading-relaxed" style="color:#6B7280;">Ajustar pantone de fondo al 90% para mejorar contraste. El cliente requiere muestra de aprobación antes de producción. Enviar a dirección de planta en Bogotá.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline preview -->
+          <div class="flex flex-col gap-4">
+            <div class="bg-white rounded-xl p-5" style="border:1px solid #D1DCE5;">
+              <h3 class="text-sm font-semibold mb-4" style="color:#1A2B3C;">Flujo de estados</h3>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background-color:#059669;">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold" style="color:#1A2B3C;">BORRADOR</p>
+                    <p class="text-xs" style="color:#9CA3AF;">09 Jun 2026</p>
+                  </div>
+                </div>
+                <div class="ml-3.5 h-5 border-l-2 border-dashed" style="border-color:#D1DCE5;"></div>
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background-color:#D97706;">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01"/></svg>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold" style="color:#1A2B3C;">PENDIENTE</p>
+                    <p class="text-xs" style="color:#9CA3AF;">11 Jun 2026 (actual)</p>
+                  </div>
+                </div>
+                <div class="ml-3.5 h-5 border-l-2 border-dashed" style="border-color:#D1DCE5;"></div>
+                <div class="flex items-center gap-3 opacity-40">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background-color:#D1DCE5;">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold" style="color:#6B7280;">CONFIRMADA</p>
+                    <p class="text-xs" style="color:#9CA3AF;">Pendiente</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-5" style="border:1px solid #D1DCE5;">
+              <h3 class="text-sm font-semibold mb-3" style="color:#1A2B3C;">Resumen archivos</h3>
+              <div class="space-y-2">
+                <div class="flex justify-between items-center py-2" style="border-bottom:1px solid #F4F7FA;">
+                  <span class="text-xs" style="color:#6B7280;">Corporativos asociados</span>
+                  <span class="text-xs font-semibold" style="color:#4A7FA5;">2</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                  <span class="text-xs" style="color:#6B7280;">Archivos de solicitud</span>
+                  <span class="text-xs font-semibold" style="color:#4A7FA5;">1</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB: Corporate files -->
+      <div x-show="activeTab === 'corporativos'" x-cloak>
+        <div class="bg-white rounded-xl p-6" style="border:1px solid #D1DCE5;">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-sm font-semibold" style="color:#1A2B3C;">Archivos corporativos asociados</h2>
+            <p class="text-xs" style="color:#6B7280;">Estos archivos pertenecen a la empresa y pueden reutilizarse en múltiples solicitudes (RN-13)</p>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-4 rounded-xl" style="background-color:#F4F7FA;border:1px solid #D1DCE5;">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#FEF3C7;">
+                  <svg class="w-5 h-5" style="color:#D97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium" style="color:#1A2B3C;">Logo_FANALCA_v3_2024.ai</p>
+                  <p class="text-xs" style="color:#6B7280;">Logo corporativo · Versión 3 · Cargado 15 Mar 2024</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2.5 py-1 rounded-full" style="background:#D1FAE5;color:#059669;">Asociado</span>
+                <button class="text-xs px-3 py-1.5 rounded-lg" style="background:white;color:#4A7FA5;border:1px solid #D1DCE5;">
+                  Descargar
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 rounded-xl" style="background-color:#F4F7FA;border:1px solid #D1DCE5;">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#EFF6FF;">
+                  <svg class="w-5 h-5" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium" style="color:#1A2B3C;">Manual_de_Marca_HONDA_2023.pdf</p>
+                  <p class="text-xs" style="color:#6B7280;">Manual de marca · Versión 1 · Cargado 10 Ene 2023</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2.5 py-1 rounded-full" style="background:#D1FAE5;color:#059669;">Asociado</span>
+                <button class="text-xs px-3 py-1.5 rounded-lg" style="background:white;color:#4A7FA5;border:1px solid #D1DCE5;">Descargar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Own files -->
+      <div x-show="activeTab === 'propios'" x-cloak>
+        <div class="bg-white rounded-xl p-6" style="border:1px solid #D1DCE5;">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-sm font-semibold" style="color:#1A2B3C;">Archivos de la solicitud</h2>
+            <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style="background-color:#2C5F7A;">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              Subir archivo
+            </button>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-4 rounded-xl" style="background-color:#F4F7FA;border:1px solid #D1DCE5;">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#F0FDF4;">
+                  <svg class="w-5 h-5" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium" style="color:#1A2B3C;">referencia_cliente_honda_jun2026.jpg</p>
+                  <p class="text-xs" style="color:#6B7280;">Imagen de referencia · 2.4 MB · 11 Jun 2026</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2.5 py-1 rounded-full" style="background:#FEF3C7;color:#D97706;">Exclusivo</span>
+                <button class="text-xs px-3 py-1.5 rounded-lg" style="background:white;color:#4A7FA5;border:1px solid #D1DCE5;">Descargar</button>
+                <button class="text-xs px-2.5 py-1.5 rounded-lg" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg text-xs" style="background-color:#E8EEF4;color:#4A7FA5;">
+            Los archivos exclusivos de solicitud pertenecen únicamente a esta solicitud y no pueden reutilizarse (RN-14).
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: History -->
+      <div x-show="activeTab === 'historial'" x-cloak>
+        <div class="bg-white rounded-xl p-6" style="border:1px solid #D1DCE5;">
+          <h2 class="text-sm font-semibold mb-5" style="color:#1A2B3C;">Historial de cambios de estado</h2>
+          <div class="space-y-0">
+            <template x-for="(item, i) in historial" :key="i">
+              <div class="flex gap-4 pb-6 relative">
+                <!-- Line -->
+                <div x-show="i < historial.length - 1"
+                     class="absolute left-3.5 top-7 bottom-0 w-0.5" style="background-color:#D1DCE5;"></div>
+                <!-- Dot -->
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 z-10"
+                     :style="`background-color:${historialColors[item.estado].dot};`">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                          :style="`background:${historialColors[item.estado].bg};color:${historialColors[item.estado].color};`"
+                          x-text="item.estado"></span>
+                    <span class="text-xs" style="color:#9CA3AF;" x-text="item.fecha"></span>
+                  </div>
+                  <p class="text-xs" style="color:#6B7280;">Por <strong x-text="item.usuario"></strong></p>
+                  <p x-show="item.obs" class="text-xs mt-1 italic" style="color:#9CA3AF;" x-text="'Obs: ' + item.obs"></p>
+                </div>
+              </div>
+            </template>
+
+            <!-- Current state indicator -->
+            <div class="flex gap-4">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-dashed"
+                   :style="`border-color:${estadoColors[estado].color};`">
+                <div class="w-2.5 h-2.5 rounded-full" :style="`background-color:${estadoColors[estado].color};`"></div>
+              </div>
+              <div class="flex-1 pt-1">
+                <p class="text-xs font-semibold" :style="`color:${estadoColors[estado].color};`" x-text="'Estado actual: ' + estado"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal: Cancel confirmation (requires observation RN cancellación) -->
+  <div x-show="showCancelModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0" style="background-color:rgba(0,0,0,0.4);" @click="showCancelModal=false"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 z-10">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background-color:#FEE2E2;">
+          <svg class="w-5 h-5" style="color:#DC2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold" style="color:#1A2B3C;">Cancelar solicitud</h3>
+          <p class="text-xs" style="color:#6B7280;">Esta acción no puede revertirse (RN-16)</p>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2" style="color:#1A2B3C;">
+          Observación de cancelación <span style="color:#EF4444;">*</span>
+        </label>
+        <textarea x-model="cancelObs" rows="3"
+                  class="w-full p-3 rounded-lg text-sm resize-none outline-none"
+                  style="border:1.5px solid #D1DCE5;color:#1A2B3C;"
+                  :style="cancelObsError ? 'border-color:#EF4444;' : ''"
+                  placeholder="Motivo de la cancelación..."
+                  onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'"></textarea>
+        <p x-show="cancelObsError" class="text-xs mt-1" style="color:#EF4444;">La observación es obligatoria para cancelar una solicitud</p>
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <button @click="showCancelModal=false; cancelObs=''; cancelObsError=false"
+                class="px-4 py-2 rounded-lg text-sm font-medium"
+                style="background:white;color:#1A2B3C;border:1px solid #D1DCE5;">
+          Volver
+        </button>
+        <button @click="confirmCancel()"
+                class="px-5 py-2 rounded-lg text-sm font-medium text-white"
+                style="background-color:#DC2626;"
+                onmouseover="this.style.backgroundColor='#B91C1C'" onmouseout="this.style.backgroundColor='#DC2626'">
+          Confirmar cancelación
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

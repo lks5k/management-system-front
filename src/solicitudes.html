@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitudes — IMSAS Gestión</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    [x-cloak]{display:none!important;} *{font-family:'Inter',sans-serif;} body{background-color:#F4F7FA;color:#1A2B3C;}
+    .sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:500;transition:all 0.15s;color:#1A2B3C;text-decoration:none;}
+    .sidebar-link:hover{background-color:#D1DCE5;} .sidebar-link.active{background-color:#4A7FA5;color:white;}
+    ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:#D1DCE5;border-radius:3px;}
+  </style>
+</head>
+<body>
+<div class="flex h-screen overflow-hidden"
+  x-data="{
+    search: '',
+    estadoFilter: '',
+    empresaFilter: '',
+    solicitudes: [
+      { id:1, codigo:'P-S0147', empresa:'FANALCA S.A.', marca:'HONDA', contacto:'Laura Martínez', producto:'Etiquetas tejidas', cantidad:'5,000 uds', estado:'PENDIENTE', fecha:'11 Jun 2026', asesor:'Carlos P.' },
+      { id:2, codigo:'P-S0146', empresa:'NCS MODA S.A.S', marca:'VÉLEZ', contacto:'María Torres', producto:'Hangtags impresos', cantidad:'10,000 uds', estado:'CONFIRMADA', fecha:'10 Jun 2026', asesor:'Ana M.' },
+      { id:3, codigo:'P-S0145', empresa:'PRACTIPOLOS', marca:'POLO CLUB', contacto:'Pedro Gómez', producto:'Etiquetas bordadas', cantidad:'2,500 uds', estado:'BORRADOR', fecha:'09 Jun 2026', asesor:'Carlos P.' },
+      { id:4, codigo:'P-S0144', empresa:'TEXTILES DEL VALLE', marca:'QUEST', contacto:'Rosa Herrera', producto:'Parches bordados', cantidad:'8,000 uds', estado:'PENDIENTE', fecha:'08 Jun 2026', asesor:'Ana M.' },
+      { id:5, codigo:'P-S0143', empresa:'NCS MODA S.A.S', marca:'AMERICANINO', contacto:'Jorge Silva', producto:'Estampado serigrafía', cantidad:'15,000 uds', estado:'CANCELADA', fecha:'06 Jun 2026', asesor:'Carlos P.' },
+      { id:6, codigo:'P-S0142', empresa:'FANALCA S.A.', marca:'GAS', contacto:'Carlos Ruiz', producto:'Transfer digital', cantidad:'3,000 uds', estado:'CONFIRMADA', fecha:'05 Jun 2026', asesor:'Ana M.' },
+      { id:7, codigo:'P-S0141', empresa:'TEXTILES DEL VALLE', marca:'TEJIDOS ANDINOS', contacto:'Luis Cardona', producto:'Etiquetas tejidas premium', cantidad:'12,000 uds', estado:'CONFIRMADA', fecha:'03 Jun 2026', asesor:'Carlos P.' },
+      { id:8, codigo:'P-S0140', empresa:'DISTRIBUIDORA CALIDAD', marca:'SPORT WEAR', contacto:'Ana García', producto:'Sublimación full print', cantidad:'1,500 uds', estado:'BORRADOR', fecha:'01 Jun 2026', asesor:'Ana M.' },
+    ],
+    estadoColors: {
+      'BORRADOR': { bg:'#F3F4F6', color:'#6B7280' },
+      'PENDIENTE': { bg:'#FEF3C7', color:'#D97706' },
+      'CONFIRMADA': { bg:'#D1FAE5', color:'#059669' },
+      'CANCELADA': { bg:'#FEE2E2', color:'#DC2626' },
+    },
+    get filtered() {
+      return this.solicitudes.filter(s => {
+        const matchSearch = !this.search ||
+          s.codigo.toLowerCase().includes(this.search.toLowerCase()) ||
+          s.empresa.toLowerCase().includes(this.search.toLowerCase()) ||
+          s.producto.toLowerCase().includes(this.search.toLowerCase());
+        const matchEstado = !this.estadoFilter || s.estado === this.estadoFilter;
+        const matchEmpresa = !this.empresaFilter || s.empresa === this.empresaFilter;
+        return matchSearch && matchEstado && matchEmpresa;
+      });
+    },
+    get countByStatus() {
+      return {
+        BORRADOR: this.solicitudes.filter(s=>s.estado==='BORRADOR').length,
+        PENDIENTE: this.solicitudes.filter(s=>s.estado==='PENDIENTE').length,
+        CONFIRMADA: this.solicitudes.filter(s=>s.estado==='CONFIRMADA').length,
+        CANCELADA: this.solicitudes.filter(s=>s.estado==='CANCELADA').length,
+      };
+    },
+    get empresas() { return [...new Set(this.solicitudes.map(s=>s.empresa))]; }
+  }">
+
+  <!-- SIDEBAR -->
+  <aside class="flex-shrink-0 flex flex-col h-screen fixed top-0 left-0 z-30 overflow-y-auto"
+         style="width:240px;background-color:#E8EEF4;border-right:1px solid #D1DCE5;">
+    <div class="h-16 flex items-center px-4 gap-3 flex-shrink-0" style="border-bottom:1px solid #D1DCE5;">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background-color:#4A7FA5;">
+        <svg class="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      </div>
+      <div><p class="text-sm font-bold" style="color:#1A2B3C;">IMSAS</p><p class="text-xs" style="color:#4A7FA5;">Gestión de Producción</p></div>
+    </div>
+    <nav class="flex-1 py-4 px-3 space-y-1">
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mb-2" style="color:#4A7FA5;opacity:.7;">Principal</p>
+      <a href="dashboard.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Maestros</p>
+      <a href="empresas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Empresas</a>
+      <a href="contactos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Contactos</a>
+      <a href="marcas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>Marcas</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Operaciones</p>
+      <a href="solicitudes.html" class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Solicitudes</a>
+    </nav>
+    <div class="p-3" style="border-top:1px solid #D1DCE5;">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color:#4A7FA5;">AM</div>
+        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;">Ana Martínez</p><p class="text-xs" style="color:#4A7FA5;">Administrador</p></div>
+        <a href="login.html"><svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col overflow-hidden" style="margin-left:240px;">
+    <header class="h-16 flex items-center justify-between px-6 flex-shrink-0" style="background:white;border-bottom:1px solid #D1DCE5;">
+      <div>
+        <h1 class="text-base font-semibold" style="color:#1A2B3C;">Solicitudes de Producción</h1>
+        <nav class="text-xs flex items-center gap-1" style="color:#9CA3AF;">
+          <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span><span>Solicitudes</span>
+        </nav>
+      </div>
+      <a href="solicitud-crear.html" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        Nueva Solicitud
+      </a>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-6">
+
+      <!-- Status pills filter -->
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <button @click="estadoFilter=''"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                :style="!estadoFilter ? 'background-color:#1A2B3C;color:white;' : 'background:white;color:#6B7280;border:1px solid #D1DCE5;'">
+          Todos <span class="font-bold" x-text="solicitudes.length"></span>
+        </button>
+        <button @click="estadoFilter='BORRADOR'"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                :style="estadoFilter==='BORRADOR' ? 'background-color:#374151;color:white;' : 'background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB;'">
+          Borrador <span class="font-bold" x-text="countByStatus.BORRADOR"></span>
+        </button>
+        <button @click="estadoFilter='PENDIENTE'"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                :style="estadoFilter==='PENDIENTE' ? 'background-color:#D97706;color:white;' : 'background:#FEF3C7;color:#D97706;border:1px solid #FDE68A;'">
+          Pendiente <span class="font-bold" x-text="countByStatus.PENDIENTE"></span>
+        </button>
+        <button @click="estadoFilter='CONFIRMADA'"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                :style="estadoFilter==='CONFIRMADA' ? 'background-color:#059669;color:white;' : 'background:#D1FAE5;color:#059669;border:1px solid #A7F3D0;'">
+          Confirmada <span class="font-bold" x-text="countByStatus.CONFIRMADA"></span>
+        </button>
+        <button @click="estadoFilter='CANCELADA'"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                :style="estadoFilter==='CANCELADA' ? 'background-color:#DC2626;color:white;' : 'background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;'">
+          Cancelada <span class="font-bold" x-text="countByStatus.CANCELADA"></span>
+        </button>
+      </div>
+
+      <!-- Search & filters bar -->
+      <div class="bg-white rounded-xl px-5 py-4 mb-4 flex flex-wrap items-center gap-4" style="border:1px solid #D1DCE5;">
+        <div class="relative flex-1 min-w-48 max-w-sm">
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style="color:#9CA3AF;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" x-model="search" placeholder="Código, empresa, producto..."
+                 class="w-full pl-9 pr-4 py-2 text-sm rounded-lg outline-none"
+                 style="border:1px solid #D1DCE5;color:#1A2B3C;background:white;"
+                 onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-medium" style="color:#6B7280;">Empresa:</label>
+          <select x-model="empresaFilter" class="text-sm rounded-lg py-2 pl-3 pr-8 outline-none"
+                  style="border:1px solid #D1DCE5;color:#1A2B3C;background:white;"
+                  onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            <option value="">Todas</option>
+            <template x-for="emp in empresas" :key="emp">
+              <option :value="emp" x-text="emp"></option>
+            </template>
+          </select>
+        </div>
+        <button x-show="search || empresaFilter" @click="search=''; empresaFilter=''"
+                class="text-xs px-3 py-2 rounded-lg" style="color:#DC2626;border:1px solid #FECACA;background:#FEF2F2;">
+          Limpiar
+        </button>
+        <span class="text-xs ml-auto" style="color:#6B7280;"><span x-text="filtered.length"></span> solicitud(es)</span>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-xl overflow-hidden" style="border:1px solid #D1DCE5;">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr style="background-color:#F4F7FA;border-bottom:1px solid #D1DCE5;">
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Código</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Empresa / Marca</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Producto</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Cantidad</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Estado</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Fecha</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Asesor</th>
+                <th class="text-right text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="s in filtered" :key="s.id">
+                <tr class="border-t transition-colors" style="border-color:#D1DCE5;"
+                    onmouseover="this.style.backgroundColor='#F4F7FA'" onmouseout="this.style.backgroundColor=''">
+                  <td class="px-5 py-3.5">
+                    <a href="solicitud-detalle.html" class="font-mono text-xs font-bold" style="color:#2C5F7A;" x-text="s.codigo"></a>
+                  </td>
+                  <td class="px-5 py-3.5">
+                    <p class="text-xs font-medium" style="color:#1A2B3C;" x-text="s.empresa"></p>
+                    <p class="text-xs" style="color:#6B7280;" x-text="s.marca"></p>
+                  </td>
+                  <td class="px-5 py-3.5">
+                    <p class="text-xs font-medium" style="color:#1A2B3C;" x-text="s.producto"></p>
+                    <p class="text-xs" style="color:#9CA3AF;" x-text="s.contacto"></p>
+                  </td>
+                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;" x-text="s.cantidad"></td>
+                  <td class="px-5 py-3.5">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+                          :style="`background:${estadoColors[s.estado].bg};color:${estadoColors[s.estado].color};`"
+                          x-text="s.estado"></span>
+                  </td>
+                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;" x-text="s.fecha"></td>
+                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;" x-text="s.asesor"></td>
+                  <td class="px-5 py-3.5 text-right">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <a href="solicitud-detalle.html"
+                         class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white"
+                         style="background-color:#4A7FA5;"
+                         onmouseover="this.style.backgroundColor='#2C5F7A'" onmouseout="this.style.backgroundColor='#4A7FA5'">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        Ver
+                      </a>
+                      <template x-if="s.estado !== 'CANCELADA'">
+                        <a href="solicitud-crear.html"
+                           class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                           style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
+                           onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                          Editar
+                        </a>
+                      </template>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="filtered.length === 0">
+                <td colspan="8" class="px-5 py-16 text-center">
+                  <svg class="w-10 h-10 mx-auto mb-3" style="color:#D1DCE5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <p class="text-sm font-medium" style="color:#6B7280;">No se encontraron solicitudes</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-5 py-4 flex items-center justify-between" style="border-top:1px solid #D1DCE5;">
+          <p class="text-xs" style="color:#6B7280;">Mostrando <strong x-text="filtered.length"></strong> de <strong x-text="solicitudes.length"></strong> solicitudes</p>
+          <div class="flex items-center gap-1">
+            <button class="px-3 py-1.5 rounded-lg text-xs" style="border:1px solid #D1DCE5;color:#6B7280;background:white;" disabled>Anterior</button>
+            <button class="px-3 py-1.5 rounded-lg text-xs text-white" style="background-color:#4A7FA5;">1</button>
+            <button class="px-3 py-1.5 rounded-lg text-xs" style="border:1px solid #D1DCE5;color:#1A2B3C;background:white;">Siguiente</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

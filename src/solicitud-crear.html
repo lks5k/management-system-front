@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva Solicitud — IMSAS Gestión</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    [x-cloak]{display:none!important;} *{font-family:'Inter',sans-serif;} body{background-color:#F4F7FA;color:#1A2B3C;}
+    .sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:500;transition:all 0.15s;color:#1A2B3C;text-decoration:none;}
+    .sidebar-link:hover{background-color:#D1DCE5;} .sidebar-link.active{background-color:#4A7FA5;color:white;}
+    .input-field{width:100%;padding:9px 12px;border:1.5px solid #D1DCE5;border-radius:8px;font-size:14px;background:white;color:#1A2B3C;outline:none;transition:border-color 0.15s;}
+    .input-field:focus{border-color:#4A7FA5;box-shadow:0 0 0 3px rgba(74,127,165,0.1);}
+    .input-field.error{border-color:#EF4444;box-shadow:0 0 0 3px rgba(239,68,68,0.1);}
+    .input-label{display:block;font-size:13px;font-weight:500;margin-bottom:5px;color:#1A2B3C;}
+    .section-card{background:white;border:1px solid #D1DCE5;border-radius:12px;padding:24px;margin-bottom:20px;}
+    .section-title{font-size:14px;font-weight:600;color:#1A2B3C;padding-bottom:16px;margin-bottom:20px;border-bottom:1px solid #D1DCE5;display:flex;align-items:center;gap:10px;}
+    .step-num{width:24px;height:24px;border-radius:50%;background-color:#4A7FA5;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+    ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:#D1DCE5;border-radius:3px;}
+  </style>
+</head>
+<body>
+<div class="flex h-screen overflow-hidden"
+  x-data="{
+    form: {
+      empresa:'', contacto:'', marca:'',
+      producto:'', cantidad:'', tecnica:'', material:'', medidas:'', colores:'',
+      observaciones:'', estado:'BORRADOR'
+    },
+    errors: {},
+    saved: false,
+    files: [],
+    contactosList: {
+      'FANALCA S.A.': [{id:1,nombre:'Laura Martínez',cargo:'Compradora'},{id:2,nombre:'Carlos Ruiz',cargo:'Diseñador'},{id:3,nombre:'Andrea López',cargo:'Coord. Producción'}],
+      'NCS MODA S.A.S': [{id:4,nombre:'María Torres',cargo:'Gerente Comercial'},{id:5,nombre:'Jorge Silva',cargo:'Diseñador'}],
+      'PRACTIPOLOS': [{id:6,nombre:'Pedro Gómez',cargo:'Gerente'}],
+      'TEXTILES DEL VALLE': [{id:7,nombre:'Rosa Herrera',cargo:'Compradora'},{id:8,nombre:'Luis Cardona',cargo:'Diseñador Textil'}],
+    },
+    marcasList: {
+      'FANALCA S.A.': ['HONDA','QUEST','GAS','CHEVIGNON','ESPRIT'],
+      'NCS MODA S.A.S': ['VÉLEZ','AMERICANINO','NALSANI'],
+      'PRACTIPOLOS': ['POLO CLUB','SPORT WEAR'],
+      'TEXTILES DEL VALLE': ['TEJIDOS ANDINOS','HILO FINO'],
+    },
+    get contactosFiltered() { return this.contactosList[this.form.empresa] || []; },
+    get marcasFiltered() { return this.marcasList[this.form.empresa] || []; },
+    get codigoPreview() { return 'P-S0148'; },
+    validate() {
+      this.errors = {};
+      if (!this.form.empresa) this.errors.empresa = 'Requerido';
+      if (!this.form.contacto) this.errors.contacto = 'Requerido';
+      if (!this.form.marca) this.errors.marca = 'Requerido';
+      if (!this.form.producto.trim()) this.errors.producto = 'Requerido';
+      if (!this.form.cantidad.trim()) this.errors.cantidad = 'Requerido';
+      return Object.keys(this.errors).length === 0;
+    },
+    saveDraft() {
+      this.form.estado = 'BORRADOR';
+      this.saved = true;
+      setTimeout(() => { this.saved = false; window.location.href = 'solicitudes.html'; }, 1500);
+    },
+    submit() {
+      if (!this.validate()) return;
+      this.form.estado = 'PENDIENTE';
+      this.saved = true;
+      setTimeout(() => { this.saved = false; window.location.href = 'solicitud-detalle.html'; }, 1500);
+    },
+    addFile(event) {
+      const file = event.target.files[0];
+      if (file) this.files.push({ name: file.name, size: (file.size/1024).toFixed(1)+' KB', type: file.type });
+    },
+    removeFile(i) { this.files.splice(i, 1); }
+  }">
+
+  <!-- SIDEBAR -->
+  <aside class="flex-shrink-0 flex flex-col h-screen fixed top-0 left-0 z-30 overflow-y-auto"
+         style="width:240px;background-color:#E8EEF4;border-right:1px solid #D1DCE5;">
+    <div class="h-16 flex items-center px-4 gap-3 flex-shrink-0" style="border-bottom:1px solid #D1DCE5;">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background-color:#4A7FA5;">
+        <svg class="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      </div>
+      <div><p class="text-sm font-bold" style="color:#1A2B3C;">IMSAS</p><p class="text-xs" style="color:#4A7FA5;">Gestión de Producción</p></div>
+    </div>
+    <nav class="flex-1 py-4 px-3 space-y-1">
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mb-2" style="color:#4A7FA5;opacity:.7;">Principal</p>
+      <a href="dashboard.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Maestros</p>
+      <a href="empresas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Empresas</a>
+      <a href="contactos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Contactos</a>
+      <a href="marcas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>Marcas</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Operaciones</p>
+      <a href="solicitudes.html" class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Solicitudes</a>
+    </nav>
+    <div class="p-3" style="border-top:1px solid #D1DCE5;">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color:#4A7FA5;">AM</div>
+        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;">Ana Martínez</p><p class="text-xs" style="color:#4A7FA5;">Administrador</p></div>
+        <a href="login.html"><svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col overflow-hidden" style="margin-left:240px;">
+    <header class="h-16 flex items-center justify-between px-6 flex-shrink-0" style="background:white;border-bottom:1px solid #D1DCE5;">
+      <div>
+        <h1 class="text-base font-semibold" style="color:#1A2B3C;">Nueva Solicitud de Producción</h1>
+        <nav class="text-xs flex items-center gap-1" style="color:#9CA3AF;">
+          <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span>
+          <a href="solicitudes.html" style="color:#4A7FA5;">Solicitudes</a><span>/</span><span>Crear</span>
+        </nav>
+      </div>
+      <!-- Código preview -->
+      <div class="flex items-center gap-3">
+        <div class="px-4 py-2 rounded-lg text-center" style="background-color:#E8EEF4;border:1px solid #D1DCE5;">
+          <p class="text-xs" style="color:#6B7280;">Código asignado (RN-06)</p>
+          <p class="font-mono font-bold text-sm" style="color:#2C5F7A;" x-text="codigoPreview"></p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Toast -->
+    <div x-show="saved" x-cloak x-transition class="fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white" style="background-color:#059669;">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      Solicitud guardada correctamente
+    </div>
+
+    <main class="flex-1 overflow-y-auto p-6">
+      <div class="max-w-3xl mx-auto">
+
+        <!-- Section 1: Client Data -->
+        <div class="section-card">
+          <div class="section-title">
+            <span class="step-num">1</span> Datos del cliente
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+            <!-- Empresa -->
+            <div>
+              <label class="input-label">Empresa <span style="color:#EF4444;">*</span></label>
+              <select x-model="form.empresa" @change="form.contacto=''; form.marca=''"
+                      :class="errors.empresa ? 'error' : ''" class="input-field"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <option value="">Seleccionar...</option>
+                <option>FANALCA S.A.</option>
+                <option>NCS MODA S.A.S</option>
+                <option>PRACTIPOLOS</option>
+                <option>TEXTILES DEL VALLE</option>
+              </select>
+              <p x-show="errors.empresa" x-text="errors.empresa" class="text-xs mt-1" style="color:#EF4444;"></p>
+            </div>
+
+            <!-- Contacto -->
+            <div>
+              <label class="input-label">Contacto <span style="color:#EF4444;">*</span></label>
+              <select x-model="form.contacto" :disabled="!form.empresa"
+                      :class="errors.contacto ? 'error' : ''" class="input-field"
+                      :style="!form.empresa ? 'opacity:0.5;cursor:not-allowed;' : ''"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <option value="">Seleccionar...</option>
+                <template x-for="c in contactosFiltered" :key="c.id">
+                  <option :value="c.nombre" x-text="c.nombre + ' — ' + c.cargo"></option>
+                </template>
+              </select>
+              <p x-show="!form.empresa" class="text-xs mt-1" style="color:#9CA3AF;">Primero seleccione una empresa</p>
+              <p x-show="errors.contacto && form.empresa" x-text="errors.contacto" class="text-xs mt-1" style="color:#EF4444;"></p>
+            </div>
+
+            <!-- Marca -->
+            <div>
+              <label class="input-label">Marca <span style="color:#EF4444;">*</span></label>
+              <select x-model="form.marca" :disabled="!form.empresa"
+                      :class="errors.marca ? 'error' : ''" class="input-field"
+                      :style="!form.empresa ? 'opacity:0.5;cursor:not-allowed;' : ''"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <option value="">Seleccionar...</option>
+                <template x-for="m in marcasFiltered" :key="m">
+                  <option :value="m" x-text="m"></option>
+                </template>
+              </select>
+              <p x-show="errors.marca && form.empresa" x-text="errors.marca" class="text-xs mt-1" style="color:#EF4444;"></p>
+              <a x-show="form.empresa" href="marca-form.html" class="text-xs mt-1 inline-block" style="color:#4A7FA5;">+ Nueva marca</a>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section 2: Production Info -->
+        <div class="section-card">
+          <div class="section-title">
+            <span class="step-num">2</span> Información de producción
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            <div>
+              <label class="input-label">Producto / Tipo de etiqueta <span style="color:#EF4444;">*</span></label>
+              <select x-model="form.producto" :class="errors.producto ? 'error' : ''" class="input-field"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <option value="">Seleccionar tipo...</option>
+                <optgroup label="Etiquetas">
+                  <option>Etiqueta tejida</option>
+                  <option>Etiqueta bordada</option>
+                  <option>Etiqueta impresa</option>
+                  <option>Etiqueta transfer</option>
+                </optgroup>
+                <optgroup label="Accesorios">
+                  <option>Hangtag impreso</option>
+                  <option>Parche bordado</option>
+                  <option>Parche tejido</option>
+                  <option>Patch termoadhesivo</option>
+                </optgroup>
+                <optgroup label="Estampados">
+                  <option>Estampado serigrafía</option>
+                  <option>Sublimación</option>
+                  <option>Transfer digital</option>
+                  <option>Bordado directo</option>
+                </optgroup>
+              </select>
+              <p x-show="errors.producto" x-text="errors.producto" class="text-xs mt-1" style="color:#EF4444;"></p>
+            </div>
+
+            <div>
+              <label class="input-label">Cantidad <span style="color:#EF4444;">*</span></label>
+              <input type="text" x-model="form.cantidad" :class="errors.cantidad ? 'error' : ''" class="input-field"
+                     placeholder="Ej: 5,000 unidades"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+              <p x-show="errors.cantidad" x-text="errors.cantidad" class="text-xs mt-1" style="color:#EF4444;"></p>
+            </div>
+
+            <div>
+              <label class="input-label">Técnica</label>
+              <select x-model="form.tecnica" class="input-field"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                <option value="">Seleccionar técnica...</option>
+                <option>Tejido jacquard</option>
+                <option>Bordado plano</option>
+                <option>Serigrafía al agua</option>
+                <option>Serigrafía plastisol</option>
+                <option>Transfer sublimación</option>
+                <option>Transfer digital</option>
+                <option>Impresión digital</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="input-label">Material</label>
+              <input type="text" x-model="form.material" class="input-field"
+                     placeholder="Ej: Satín, tafetán, sarga..."
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+            <div>
+              <label class="input-label">Medidas</label>
+              <input type="text" x-model="form.medidas" class="input-field"
+                     placeholder="Ej: 3cm x 5cm"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+            <div>
+              <label class="input-label">Colores</label>
+              <input type="text" x-model="form.colores" class="input-field"
+                     placeholder="Ej: 2 colores — pantone 286C / blanco"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section 3: Observations -->
+        <div class="section-card">
+          <div class="section-title">
+            <span class="step-num">3</span> Observaciones
+          </div>
+          <textarea x-model="form.observaciones" rows="4" class="input-field resize-none"
+                    placeholder="Instrucciones especiales, referencias de color, acabados requeridos, notas del cliente..."
+                    onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'"></textarea>
+          <p class="text-xs mt-2" style="color:#9CA3AF;">Incluya cualquier detalle relevante para el proceso de producción.</p>
+        </div>
+
+        <!-- Section 4: Files -->
+        <div class="section-card">
+          <div class="section-title">
+            <span class="step-num">4</span> Archivos adjuntos
+          </div>
+
+          <!-- Upload area -->
+          <div class="rounded-xl p-6 text-center border-2 border-dashed mb-4 cursor-pointer transition-colors"
+               style="border-color:#D1DCE5;background-color:#F4F7FA;"
+               onmouseover="this.style.borderColor='#4A7FA5';this.style.backgroundColor='#E8EEF4'"
+               onmouseout="this.style.borderColor='#D1DCE5';this.style.backgroundColor='#F4F7FA'"
+               onclick="document.getElementById('fileInput').click()">
+            <svg class="w-8 h-8 mx-auto mb-3" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p class="text-sm font-medium" style="color:#1A2B3C;">Arrastrar archivos aquí o hacer clic para seleccionar</p>
+            <p class="text-xs mt-1" style="color:#9CA3AF;">PDF, AI, EPS, JPG, PNG · Máx. 20 MB por archivo</p>
+            <input id="fileInput" type="file" class="hidden" @change="addFile($event)" multiple accept=".pdf,.ai,.eps,.jpg,.jpeg,.png">
+          </div>
+
+          <!-- File list -->
+          <div x-show="files.length > 0" class="space-y-2">
+            <template x-for="(file, i) in files" :key="i">
+              <div class="flex items-center justify-between px-4 py-3 rounded-lg" style="background-color:#F4F7FA;border:1px solid #D1DCE5;">
+                <div class="flex items-center gap-3">
+                  <svg class="w-5 h-5 flex-shrink-0" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <div>
+                    <p class="text-xs font-medium" style="color:#1A2B3C;" x-text="file.name"></p>
+                    <p class="text-xs" style="color:#9CA3AF;" x-text="file.size"></p>
+                  </div>
+                </div>
+                <button type="button" @click="removeFile(i)" class="text-xs px-2 py-1 rounded" style="color:#DC2626;background:#FEF2F2;">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </template>
+          </div>
+
+          <!-- Corporate files section -->
+          <div class="mt-5 pt-5" style="border-top:1px solid #D1DCE5;">
+            <p class="text-xs font-semibold mb-3" style="color:#1A2B3C;">Archivos corporativos disponibles</p>
+            <p class="text-xs mb-3" style="color:#6B7280;">Seleccione archivos previamente cargados de la empresa para asociarlos a esta solicitud:</p>
+            <div class="space-y-2">
+              <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                     style="background-color:#F4F7FA;border:1px solid #D1DCE5;"
+                     onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
+                <input type="checkbox" class="w-4 h-4" style="accent-color:#4A7FA5;">
+                <svg class="w-4 h-4" style="color:#D97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <div class="flex-1">
+                  <p class="text-xs font-medium" style="color:#1A2B3C;">Logo_FANALCA_v3_2024.ai</p>
+                  <p class="text-xs" style="color:#9CA3AF;">Logo corporativo · v3 · 15 Mar 2024</p>
+                </div>
+              </label>
+              <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                     style="background-color:#F4F7FA;border:1px solid #D1DCE5;"
+                     onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
+                <input type="checkbox" class="w-4 h-4" style="accent-color:#4A7FA5;">
+                <svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <div class="flex-1">
+                  <p class="text-xs font-medium" style="color:#1A2B3C;">Manual_de_Marca_HONDA_2023.pdf</p>
+                  <p class="text-xs" style="color:#9CA3AF;">Manual de marca · v1 · 10 Ene 2023</p>
+                </div>
+              </label>
+              <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                     style="background-color:#F4F7FA;border:1px solid #D1DCE5;"
+                     onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
+                <input type="checkbox" class="w-4 h-4" style="accent-color:#4A7FA5;">
+                <svg class="w-4 h-4" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <div class="flex-1">
+                  <p class="text-xs font-medium" style="color:#1A2B3C;">Arte_etiqueta_aprobado_HONDA_2024.jpg</p>
+                  <p class="text-xs" style="color:#9CA3AF;">Arte aprobado · v2 · 05 Feb 2024</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Validation summary -->
+        <div x-show="Object.keys(errors).length > 0" x-cloak x-transition
+             class="rounded-lg p-4 mb-5 flex items-start gap-3" style="background-color:#FEF2F2;border:1px solid #FECACA;">
+          <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#DC2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div>
+            <p class="text-xs font-semibold" style="color:#DC2626;">Complete los campos requeridos antes de enviar</p>
+            <ul class="mt-1 space-y-0.5">
+              <template x-for="(msg, field) in errors" :key="field">
+                <li class="text-xs" style="color:#DC2626;">· <span x-text="field"></span>: <span x-text="msg"></span></li>
+              </template>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between">
+          <a href="solicitudes.html" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium"
+             style="background:white;color:#1A2B3C;border:1px solid #D1DCE5;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Cancelar
+          </a>
+          <div class="flex items-center gap-3">
+            <button type="button" @click="saveDraft()"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium"
+                    style="background:white;color:#1A2B3C;border:1px solid #D1DCE5;"
+                    onmouseover="this.style.backgroundColor='#F4F7FA'" onmouseout="this.style.backgroundColor='white'">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+              Guardar borrador
+            </button>
+            <button type="button" @click="submit()"
+                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-white"
+                    style="background-color:#2C5F7A;"
+                    onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              Enviar solicitud
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
