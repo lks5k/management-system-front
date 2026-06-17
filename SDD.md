@@ -1,675 +1,371 @@
-# SDD - Sistema de Gestión de Producción
-
-## Módulo V1: Clientes y Solicitudes
-
-**Versión:** 1.0
-
+# SDD — Sistema de Gestión de Producción
+## Imagen Marquillas SAS
+**Versión:** 2.0
 **Estado:** Aprobado para desarrollo
 
 ---
 
 # 1. Propósito
 
-El Sistema de Gestión de Producción tiene como objetivo centralizar y controlar la información comercial y operativa relacionada con las solicitudes de producción realizadas por los clientes.
+El Sistema de Gestión de Producción centraliza y controla la información
+comercial y operativa de las solicitudes de producción de Imagen Marquillas SAS.
 
-Actualmente la información se gestiona mediante archivos Excel independientes, generando duplicidad de información, pérdida de trazabilidad y dificultades para el seguimiento.
+El sistema actual opera sobre archivos Excel independientes y cadenas de
+correo/WhatsApp, generando duplicidad de información, pérdida de trazabilidad,
+inconsistencias en los datos y dificultades para el seguimiento por parte de
+los diferentes actores del proceso.
 
-La versión 1 del sistema permitirá registrar empresas, contactos, marcas, archivos corporativos y solicitudes de producción desde una única plataforma.
+La versión 1 reemplaza ese flujo con una plataforma única que cubre desde el
+registro de clientes hasta el seguimiento de solicitudes de producción.
 
 ---
 
 # 2. Alcance
 
-La versión 1 incluye:
+## Incluido en V1
 
-* Autenticación de usuarios.
-* Gestión de empresas.
-* Gestión de contactos.
-* Gestión de marcas.
-* Gestión de archivos corporativos.
-* Gestión de solicitudes.
-* Asociación de archivos a solicitudes.
-* Consulta y seguimiento de solicitudes.
+- Autenticación con roles diferenciados
+- Gestión de empresas
+- Gestión de contactos con múltiples correos
+- Gestión de marcas con detección de duplicados
+- Gestión de productos (lista administrable)
+- Gestión de solicitudes con flujo de estados
+- Vinculación entre solicitudes (Diseño → Pedido → Reposición)
+- Consulta y seguimiento de solicitudes
 
-La versión 1 no incluye:
+## No incluido en V1
 
-* Diseño gráfico.
-* Producción.
-* Inventario.
-* Despachos.
-* Indicadores.
-* Notificaciones automáticas.
-* Integraciones externas.
-* Gestión documental avanzada.
+- Módulo de diseño gráfico
+- Módulo de producción
+- Módulo de inventario
+- Módulo de despachos
+- Indicadores y reportes avanzados
+- Notificaciones automáticas
+- Integraciones externas
+- Gestión documental avanzada
+- Cotizaciones formales
+- Módulo financiero/contable
 
 ---
 
 # 3. Roles
 
-## Administrador
+## SUPERADMIN
+Control total del sistema.
 
-Responsable de la administración general del sistema.
+**Permisos:**
+- Todo lo de ADMIN
+- Gestión de usuarios y roles
+- Acceso indiscutible a cualquier registro
+- Versionar código de base de datos
 
-### Permisos
+## ADMIN
+Gestión completa del sistema.
 
-* Crear usuarios.
-* Editar usuarios.
-* Activar usuarios.
-* Desactivar usuarios.
-* Consultar todas las empresas.
-* Consultar todas las solicitudes.
-* Editar cualquier registro.
-* Gestionar archivos corporativos.
-* Cambiar estados de solicitudes.
-* Consultar información global.
+**Permisos:**
+- Todo lo de MANAGER
+- Editar cualquier registro
+- Cambiar cualquier estado
+- Versionar código de base de datos
 
----
+## MANAGER
+Supervisión y aprobación.
 
-## Asesor
+**Permisos:**
+- Aprobar y rechazar solicitudes
+- Consultar información global
+- Acceder a reportes globales
 
-Responsable de gestionar la relación comercial con los clientes.
+## OPERATOR
+Gestión operativa de maestros y solicitudes.
 
-### Permisos
+**Permisos:**
+- CRUD completo de empresas, contactos, marcas, productos
+- Crear y editar solicitudes
+- Versionar código de base de datos
 
-* Iniciar sesión.
-* Registrar empresas.
-* Registrar contactos.
-* Registrar marcas.
-* Crear solicitudes.
-* Adjuntar archivos.
-* Consultar solicitudes propias.
-* Editar solicitudes mientras no estén canceladas.
+## OFFICER
+Gestión de solicitudes propias.
+
+**Permisos:**
+- Crear y editar sus propias solicitudes
+- Adjuntar archivos a solicitudes
+
+## SALES_REP
+Gestión comercial de su cartera.
+
+**Permisos:**
+- Consultar sus clientes asignados
+- Crear y editar sus propias solicitudes
+- Versionar código de base de datos de sus solicitudes
 
 ---
 
 # 4. Conceptos del Negocio
 
 ## Empresa
-
 Entidad jurídica con la cual se realiza la relación comercial.
 
-Ejemplos:
+Ejemplos: FANALCA, NCS MODA, PRACTIPOLOS
 
-* FANALCA
-* NCS MODA
-* PRACTIPOLOS
+## Contacto
+Persona perteneciente a una empresa con quien se tiene relación directa.
+Una empresa puede tener múltiples contactos.
+Un contacto puede tener múltiples correos electrónicos.
 
----
-
-## Cliente
-
-Persona de contacto perteneciente a una empresa.
-
-Ejemplos:
-
-* Comprador
-* Diseñador
-* Coordinador de producción
-
-Una empresa puede tener múltiples clientes.
-
----
+Ejemplos de cargo: Comprador, Diseñador, Coordinador de producción
 
 ## Marca
-
 Marca comercial asociada a una empresa.
-
-Ejemplos:
-
-* HONDA
-* QUEST
-* VÉLEZ
-
 Una empresa puede tener múltiples marcas.
 
----
+Ejemplos: HONDA, QUEST, VÉLEZ
+
+## Producto
+Tipo de producto que IMSAS produce.
+Lista administrable por ADMIN/SUPERADMIN.
+Se selecciona en la solicitud — no se escribe libremente.
+
+Ejemplos: Etiqueta tejida, Etiqueta digital, Marquilla corte
 
 ## Solicitud
+Requerimiento comercial que será gestionado por los procesos de diseño
+y producción. Es la entidad central del sistema.
 
-Requerimiento comercial que será gestionado posteriormente por los procesos de diseño y producción.
-
----
-
-## Archivo Corporativo
-
-Archivo perteneciente a una empresa o marca que puede reutilizarse en múltiples solicitudes.
-
-Ejemplos:
-
-* Logos
-* Manuales de marca
-* Artes aprobados
-* Archivos maestros
+Una solicitud siempre pertenece a una empresa.
+Puede estar vinculada a un contacto, marca y producto.
+Puede originarse desde otra solicitud (Diseño → Pedido → Reposición).
 
 ---
 
-## Archivo de Solicitud
+# 5. Flujo de Solicitudes
 
-Archivo exclusivo de una solicitud específica.
+## 5.1 Tipos de Solicitud
 
-Ejemplos:
+| Tipo | Descripción |
+|---|---|
+| DISEÑO | Primera solicitud. Se pide diseño antes de producir. |
+| MUESTRAS | Solicitud de muestras. No necesariamente precede un pedido en firme. |
+| PEDIDO | Producción en firme. Puede originarse desde un DISEÑO aprobado. |
+| REPOSICION | Repetición de un pedido anterior. Puede heredar el código BD original o generar uno nuevo si la base de datos cambió. |
+| CORTE | El cliente entrega un rollo de marquillas impreso para corte. |
+| PRESTAMO | Préstamo de material o insumos al cliente, a un compañero o a otro proveedor. |
 
-* Pedido puntual
-* Referencia enviada por el cliente
-* Archivo temporal
+## 5.2 Estados
+
+| Estado | Descripción |
+|---|---|
+| BORRADOR | Solicitud incompleta. El asesor la guarda para continuar después. |
+| CONFIRMAR | Esperando confirmación del cliente para proceder. |
+| PENDIENTE | Cliente confirmó. Producción puede proceder. |
+| COMPLETADO | Solicitud finalizada. Estado terminal. |
+| CANCELADO | Solicitud anulada. Requiere observación obligatoria. |
+
+## 5.3 Diagrama de Estados
+
+```
+BORRADOR → CONFIRMAR → PENDIENTE → COMPLETADO
+                    ↘
+                     CANCELADO
+```
+
+> Una solicitud CANCELADO no puede volver a BORRADOR.
+> CANCELADO puede aplicarse desde cualquier estado excepto COMPLETADO.
+
+## 5.4 Flujo "Convertir a Pedido"
+
+Cuando una solicitud tipo DISEÑO es aprobada por el cliente:
+
+1. El asesor abre la solicitud DISEÑO y hace clic en "Convertir a Pedido"
+2. El sistema crea automáticamente una nueva solicitud tipo PEDIDO
+   copiando todos los campos del DISEÑO original
+3. El asesor revisa y ajusta solo lo que cambie (cantidad, medidas, etc.)
+4. La nueva solicitud queda vinculada al DISEÑO original via `solicitud_origen_id`
+5. Ambos registros permanecen históricos e intactos
+
+**Beneficio:** el sistema puede reportar cuántos diseños se convirtieron en
+pedido y cuántos no, sin perder el histórico del proceso.
+
+El mismo mecanismo aplica para REPOSICION.
 
 ---
 
-# 5. Casos de Uso
+# 6. Casos de Uso
 
 ## CU-01 Iniciar Sesión
+**Actores:** Todos los roles
 
-Actor:
-
-* Administrador
-* Asesor
-
-Flujo:
-
-1. El usuario ingresa correo y contraseña.
-2. El sistema valida credenciales.
-3. El sistema genera sesión autenticada.
-4. El usuario accede al sistema.
-
----
+1. El usuario ingresa correo y contraseña
+2. El sistema valida credenciales
+3. El sistema genera sesión autenticada con JWT
+4. El usuario accede al dashboard según su rol
 
 ## CU-02 Registrar Empresa
+**Actores:** SALES_REP, OFFICER, OPERATOR, ADMIN, SUPERADMIN
 
-Actor:
-
-* Asesor
-* Administrador
-
-Flujo:
-
-1. Registrar información de la empresa.
-2. Guardar información.
-3. La empresa queda disponible para solicitudes.
-
----
+1. Ingresar tipo y número de documento
+2. El sistema valida que el número de documento no exista (RN-02)
+3. Completar datos de la empresa
+4. Guardar
 
 ## CU-03 Registrar Contacto
+**Actores:** SALES_REP, OFFICER, OPERATOR, ADMIN, SUPERADMIN
 
-Actor:
-
-* Asesor
-* Administrador
-
-Flujo:
-
-1. Seleccionar empresa.
-2. Registrar datos del contacto.
-3. Guardar información.
-
----
+1. Seleccionar empresa
+2. Registrar datos del contacto
+3. Agregar uno o más correos electrónicos
+4. Indicar si es contacto de facturación
+5. Guardar
 
 ## CU-04 Registrar Marca
+**Actores:** SALES_REP, OFFICER, OPERATOR, ADMIN, SUPERADMIN
 
-Actor:
+1. Seleccionar empresa
+2. Ingresar nombre de la marca
+3. El sistema busca marcas similares en la misma empresa (RN-11)
+4. Confirmar y guardar
 
-* Asesor
-* Administrador
+## CU-05 Crear Solicitud
+**Actores:** SALES_REP, OFFICER, OPERATOR, ADMIN, SUPERADMIN
 
-Flujo:
+1. Seleccionar empresa
+2. Seleccionar contacto (opcional)
+3. Seleccionar marca (opcional)
+4. Seleccionar tipo de solicitud
+5. Seleccionar producto de la lista
+6. Completar datos de producción
+7. Guardar como BORRADOR o enviar a CONFIRMAR
 
-1. Seleccionar empresa.
-2. Registrar nombre de la marca.
-3. Guardar información.
+## CU-06 Convertir Diseño a Pedido
+**Actores:** SALES_REP, OFFICER, OPERATOR, ADMIN, SUPERADMIN
 
----
+1. Abrir solicitud tipo DISEÑO
+2. Hacer clic en "Convertir a Pedido"
+3. El sistema crea un PEDIDO copiando los datos del DISEÑO
+4. El asesor ajusta las diferencias
+5. Guardar — el PEDIDO queda vinculado al DISEÑO original
 
-## CU-05 Registrar Archivo Corporativo
+## CU-07 Cambiar Estado de Solicitud
+**Actores:** Según permisos por rol
 
-Actor:
+1. Abrir solicitud
+2. Seleccionar nuevo estado
+3. Si es CANCELADO: ingresar observación obligatoria
+4. Si versiona código BD: ingresar motivo obligatorio
+5. Guardar
 
-* Asesor
-* Administrador
+## CU-08 Consultar Solicitudes
+**Actores:** Todos los roles (filtrado según permisos)
 
-Flujo:
-
-1. Seleccionar empresa.
-2. Cargar archivo.
-3. Registrar información descriptiva.
-4. Guardar archivo.
-
----
-
-## CU-06 Crear Solicitud
-
-Actor:
-
-* Asesor
-* Administrador
-
-Flujo:
-
-1. Seleccionar empresa.
-2. Seleccionar contacto.
-3. Seleccionar marca.
-4. Registrar información de producción.
-5. Adjuntar archivos.
-6. Guardar solicitud.
-7. Generar código automático.
-
----
-
-## CU-07 Consultar Solicitudes
-
-Actor:
-
-* Administrador
-* Asesor
-
-Flujo:
-
-1. Buscar solicitud.
-2. Visualizar información.
-3. Consultar archivos asociados.
-4. Consultar historial.
-
----
-
-## CU-08 Editar Solicitud
-
-Actor:
-
-* Administrador
-* Asesor
-
-Flujo:
-
-1. Abrir solicitud.
-2. Modificar información permitida.
-3. Guardar cambios.
-
----
-
-# 6. Estados de Solicitud
-
-## BORRADOR
-
-Solicitud creada pero incompleta.
-
----
-
-## PENDIENTE
-
-Solicitud lista para revisión.
-
----
-
-## CONFIRMADA
-
-Solicitud validada.
-
----
-
-## CANCELADA
-
-Solicitud anulada.
-
-Debe registrarse observación obligatoria.
+1. Acceder al listado de solicitudes
+2. Filtrar por estado, tipo, empresa, asesor, fecha
+3. Ver detalle de la solicitud
+4. Consultar solicitudes vinculadas (origen o derivadas)
 
 ---
 
 # 7. Reglas de Negocio
 
-### RN-01
-
-Toda solicitud debe pertenecer a una empresa.
-
----
-
-### RN-02
-
-Toda solicitud debe tener un contacto asociado.
-
----
-
-### RN-03
-
-Toda solicitud debe tener una marca asociada.
-
----
-
-### RN-04
-
-El NIT de la empresa debe ser único.
+| ID | Regla |
+|---|---|
+| RN-01 | Toda solicitud debe pertenecer a una empresa |
+| RN-02 | El número de documento es único por empresa |
+| RN-03 | El correo electrónico debe tener formato válido |
+| RN-04 | El código de solicitud se genera al pasar de BORRADOR a PENDIENTE |
+| RN-05 | El consecutivo de solicitudes nunca se reinicia |
+| RN-06 | El código de solicitud es inmutable una vez asignado |
+| RN-07 | codigoBaseDatos = "BD-" + sufijo del código. Versión inicia en -00 |
+| RN-08 | version_bd incrementa solo por corrección estructural (tallas, cantidades, colores, referencias) con motivo obligatorio |
+| RN-09 | Pueden versionar código BD: SALES_REP, OPERATOR, ADMIN, SUPERADMIN |
+| RN-10 | Una empresa puede tener múltiples contactos y marcas |
+| RN-11 | Validar duplicados de marca por empresa antes de crear |
+| RN-12 | Eliminación lógica únicamente, nunca física |
+| RN-13 | Cancelación requiere observacion_cancelacion obligatoria |
+| RN-14 | Una solicitud CANCELADO no puede volver a BORRADOR |
+| RN-15 | PEDIDO o REPOSICION originados de un DISEÑO deben referenciar solicitud_origen_id |
+| RN-16 | La lista de productos es administrada por ADMIN/SUPERADMIN — no se escribe libremente |
 
 ---
 
-### RN-05
-
-El correo electrónico debe tener formato válido.
-
----
-
-### RN-06
-
-El código de solicitud es generado automáticamente.
-
-Formato:
-
-P-S0001
-
-P-S0002
-
-P-S0003
-
----
-
-### RN-07
-
-El consecutivo de solicitudes nunca se reinicia.
-
----
-
-### RN-08
-
-El código de solicitud no puede modificarse.
-
----
-
-### RN-09
-
-Una empresa puede tener múltiples contactos.
-
----
-
-### RN-10
-
-Una empresa puede tener múltiples marcas.
-
----
-
-### RN-11
-
-El asesor puede crear nuevas marcas.
-
----
-
-### RN-12
-
-Antes de crear una marca el sistema debe buscar coincidencias similares para reducir duplicados.
-
----
-
-### RN-13
-
-Los archivos corporativos pueden reutilizarse en múltiples solicitudes.
-
----
-
-### RN-14
-
-Los archivos de solicitud pertenecen exclusivamente a la solicitud donde fueron cargados.
-
----
-
-### RN-15
-
-La eliminación física de registros no está permitida.
-
-Se utilizará eliminación lógica.
-
----
-
-### RN-16
-
-Una solicitud cancelada no puede volver a estado borrador.
-
----
-
-# 8. Modelo de Datos
-
-## Rol
-
-* id
-* nombre
-
----
-
-## Usuario
-
-* id
-* nombre
-* correo
-* password_hash
-* activo
-* rol_id
-* created_at
-* updated_at
-
----
-
-## Empresa
-
-* id
-* nit
-* razon_social
-* direccion
-* ciudad
-* telefono
-* created_at
-* updated_at
-
----
-
-## Cliente
-
-* id
-* empresa_id
-* nombre
-* cargo
-* correo
-* celular
-* es_principal
-* created_at
-* updated_at
-
----
-
-## Marca
-
-* id
-* empresa_id
-* nombre
-* descripcion
-* created_at
-* updated_at
-
----
-
-## DocumentoEmpresa
-
-* id
-* empresa_id
-* tipo_documento
-* nombre_archivo
-* ruta_archivo
-* fecha_carga
-
----
-
-## ArchivoEmpresa
-
-* id
-* empresa_id
-* nombre_original
-* nombre_sistema
-* tipo_archivo
-* ruta_archivo
-* version
-* created_at
-
----
-
-## Solicitud
-
-* id
-* codigo
-* empresa_id
-* cliente_id
-* marca_id
-* asesor_id
-* producto
-* cantidad
-* tecnica
-* material
-* medidas
-* colores
-* observaciones
-* estado
-* created_at
-* updated_at
-
----
-
-## SolicitudArchivo
-
-* id
-* solicitud_id
-* archivo_empresa_id
-
----
-
-## ArchivoSolicitud
-
-* id
-* solicitud_id
-* nombre_archivo
-* ruta_archivo
-* tipo_archivo
-* fecha_carga
-
----
-
-# 9. Pantallas
+# 8. Pantallas
 
 ## Login
-
-Campos:
-
-* Correo
-* Contraseña
-
----
+- Correo y contraseña
+- Validación de credenciales
 
 ## Dashboard
-
-Información:
-
-* Total empresas
-* Total solicitudes
-* Solicitudes pendientes
-* Solicitudes confirmadas
-
----
+- Total empresas activas
+- Total solicitudes por estado
+- Solicitudes recientes
 
 ## Empresas
-
-Funciones:
-
-* Crear
-* Editar
-* Consultar
-
----
+- Listado con filtros
+- Crear / Editar / Desactivar
 
 ## Contactos
-
-Funciones:
-
-* Crear
-* Editar
-* Consultar
-
----
+- Listado filtrado por empresa
+- Crear / Editar con múltiples correos
 
 ## Marcas
+- Listado filtrado por empresa
+- Crear con detección de duplicados
 
-Funciones:
-
-* Crear
-* Editar
-* Consultar
-
----
-
-## Archivos Corporativos
-
-Funciones:
-
-* Subir
-* Consultar
-* Asociar a solicitudes
-
----
+## Productos
+- Listado administrable
+- Crear / Editar / Desactivar (solo ADMIN/SUPERADMIN)
 
 ## Solicitudes
-
-Funciones:
-
-* Crear
-* Editar
-* Consultar
-* Filtrar
-
----
+- Listado con filtros por estado, tipo, empresa, asesor, fecha
+- Crear / Editar
+- Convertir a Pedido (desde DISEÑO aprobado)
+- Cambio de estado
 
 ## Detalle de Solicitud
-
-Información:
-
-* Datos generales
-* Archivos corporativos asociados
-* Archivos propios
-* Estado
-* Historial
+- Datos generales
+- Solicitud origen (si aplica)
+- Solicitudes derivadas (pedidos o reposiciones originados aquí)
+- Historial de cambios de estado
 
 ---
 
-# 10. Tecnologías
-
-## Backend
-
-* Java 17
-* Spring Boot 3
-* Spring Security
-* JWT
-* Spring Data JPA
-
-## Base de Datos
-
-* PostgreSQL
+# 9. Stack Tecnológico
 
 ## Frontend
+- HTML5
+- Tailwind CSS (CDN)
+- Alpine.js (CDN)
 
-* HTML5
-* Tailwind CSS
-* Alpine.js
+## Backend
+- Java 17
+- Spring Boot 3
+- Spring Security + JWT
+- Spring Data JPA
+
+## Base de Datos
+- PostgreSQL 16
+- Flyway (migraciones versionadas)
+
+## Infraestructura
+- Docker Compose (desarrollo local)
+- Nginx (producción)
+- VPS Linux
 
 ## Control de Versiones
-
-* Git
-* GitHub
-
-## Almacenamiento de Archivos
-
-* Sistema de archivos local (V1)
+- Git / GitHub
 
 ---
 
-# 11. Criterio de Finalización de la V1
+# 10. Criterios de Finalización V1
 
 La versión 1 se considera terminada cuando:
 
-* Los usuarios pueden autenticarse.
-* Las empresas pueden registrarse.
-* Los contactos pueden registrarse.
-* Las marcas pueden registrarse.
-* Los archivos corporativos pueden cargarse.
-* Las solicitudes pueden crearse.
-* Las solicitudes pueden consultarse.
-* Los archivos pueden asociarse a solicitudes.
-* Toda la información queda almacenada en PostgreSQL.
+- Los usuarios pueden autenticarse con su rol
+- Las empresas pueden registrarse y consultarse
+- Los contactos pueden registrarse con múltiples correos
+- Las marcas pueden registrarse con detección de duplicados
+- Los productos pueden administrarse desde el sistema
+- Las solicitudes pueden crearse, editarse y consultarse
+- El flujo de estados funciona correctamente
+- La conversión Diseño → Pedido funciona con un clic
+- Toda la información queda almacenada en PostgreSQL
+- Los permisos por rol están correctamente aplicados

@@ -23,25 +23,27 @@
     cancelObs: '',
     cancelObsError: false,
     estadoColors: {
-      'BORRADOR': { bg:'#F3F4F6', color:'#6B7280' },
-      'PENDIENTE': { bg:'#FEF3C7', color:'#D97706' },
-      'CONFIRMADA': { bg:'#D1FAE5', color:'#059669' },
-      'CANCELADA': { bg:'#FEE2E2', color:'#DC2626' },
+      'BORRADOR':   { bg:'#F3F4F6', color:'#6B7280' },
+      'CONFIRMAR':  { bg:'#DBEAFE', color:'#2563EB' },
+      'PENDIENTE':  { bg:'#FEF3C7', color:'#D97706' },
+      'COMPLETADO': { bg:'#D1FAE5', color:'#059669' },
+      'CANCELADO':  { bg:'#FEE2E2', color:'#DC2626' },
     },
     transiciones: {
-      'BORRADOR': ['PENDIENTE'],
-      'PENDIENTE': ['CONFIRMADA','CANCELADA'],
-      'CONFIRMADA': ['CANCELADA'],
-      'CANCELADA': [],
+      'BORRADOR':   ['CONFIRMAR', 'CANCELADO'],
+      'CONFIRMAR':  ['PENDIENTE', 'CANCELADO'],
+      'PENDIENTE':  ['COMPLETADO', 'CANCELADO'],
+      'COMPLETADO': [],
+      'CANCELADO':  [],
     },
     get nextStatuses() { return this.transiciones[this.estado] || []; },
     changeStatus(s) {
-      if (s === 'CANCELADA') { this.newStatus = s; this.showStatusModal = false; this.showCancelModal = true; }
+      if (s === 'CANCELADO') { this.newStatus = s; this.showStatusModal = false; this.showCancelModal = true; }
       else { this.estado = s; this.showStatusModal = false; }
     },
     confirmCancel() {
       if (!this.cancelObs.trim()) { this.cancelObsError = true; return; }
-      this.estado = 'CANCELADA';
+      this.estado = 'CANCELADO';
       this.showCancelModal = false;
       this.cancelObsError = false;
     },
@@ -50,10 +52,11 @@
       { estado:'PENDIENTE', fecha:'11 Jun 2026 09:15', usuario:'Ana M.', obs:'' },
     ],
     historialColors: {
-      'BORRADOR': { bg:'#F3F4F6', color:'#6B7280', dot:'#9CA3AF' },
-      'PENDIENTE': { bg:'#FEF3C7', color:'#D97706', dot:'#FBBF24' },
-      'CONFIRMADA': { bg:'#D1FAE5', color:'#059669', dot:'#34D399' },
-      'CANCELADA': { bg:'#FEE2E2', color:'#DC2626', dot:'#F87171' },
+      'BORRADOR':   { bg:'#F3F4F6', color:'#6B7280', dot:'#9CA3AF' },
+      'CONFIRMAR':  { bg:'#DBEAFE', color:'#2563EB', dot:'#60A5FA' },
+      'PENDIENTE':  { bg:'#FEF3C7', color:'#D97706', dot:'#FBBF24' },
+      'COMPLETADO': { bg:'#D1FAE5', color:'#059669', dot:'#34D399' },
+      'CANCELADO':  { bg:'#FEE2E2', color:'#DC2626', dot:'#F87171' },
     }
   }">
 
@@ -149,7 +152,7 @@
           </div>
 
           <!-- Edit (disabled if cancelled) -->
-          <template x-if="estado !== 'CANCELADA'">
+          <template x-if="estado !== 'CANCELADO' && estado !== 'COMPLETADO'">
             <a href="solicitud-crear.html"
                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
                style="background-color:#2C5F7A;"
@@ -158,7 +161,7 @@
               Editar
             </a>
           </template>
-          <template x-if="estado === 'CANCELADA'">
+          <template x-if="estado === 'CANCELADO' || estado === 'COMPLETADO'">
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed"
                   style="background-color:#F3F4F6;color:#9CA3AF;">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -240,36 +243,32 @@
           <div class="flex flex-col gap-4">
             <div class="bg-white rounded-xl p-5" style="border:1px solid #D1DCE5;">
               <h3 class="text-sm font-semibold mb-4" style="color:#1A2B3C;">Flujo de estados</h3>
-              <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background-color:#059669;">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                  </div>
+              <div class="space-y-0">
+                <template x-for="(step, i) in [
+                  {key:'BORRADOR',   color:'#6B7280'},
+                  {key:'CONFIRMAR',  color:'#2563EB'},
+                  {key:'PENDIENTE',  color:'#D97706'},
+                  {key:'COMPLETADO', color:'#059669'}
+                ]" :key="step.key">
                   <div>
-                    <p class="text-xs font-semibold" style="color:#1A2B3C;">BORRADOR</p>
-                    <p class="text-xs" style="color:#9CA3AF;">09 Jun 2026</p>
+                    <div class="flex items-center gap-3"
+                         :class="estado === step.key || ['BORRADOR','CONFIRMAR','PENDIENTE','COMPLETADO'].indexOf(estado) > ['BORRADOR','CONFIRMAR','PENDIENTE','COMPLETADO'].indexOf(step.key) ? 'opacity-100' : 'opacity-35'">
+                      <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                           :style="estado === step.key || ['BORRADOR','CONFIRMAR','PENDIENTE','COMPLETADO'].indexOf(estado) > ['BORRADOR','CONFIRMAR','PENDIENTE','COMPLETADO'].indexOf(step.key)
+                             ? `background-color:${step.color};`
+                             : 'background-color:#D1DCE5;'">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p class="text-xs font-semibold" :style="`color:${step.color};`" x-text="step.key"></p>
+                        <p class="text-xs" style="color:#9CA3AF;" x-text="estado === step.key ? '(actual)' : ''"></p>
+                      </div>
+                    </div>
+                    <div x-show="i < 3" class="ml-3.5 h-5 border-l-2 border-dashed" style="border-color:#D1DCE5;"></div>
                   </div>
-                </div>
-                <div class="ml-3.5 h-5 border-l-2 border-dashed" style="border-color:#D1DCE5;"></div>
-                <div class="flex items-center gap-3">
-                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background-color:#D97706;">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01"/></svg>
-                  </div>
-                  <div>
-                    <p class="text-xs font-semibold" style="color:#1A2B3C;">PENDIENTE</p>
-                    <p class="text-xs" style="color:#9CA3AF;">11 Jun 2026 (actual)</p>
-                  </div>
-                </div>
-                <div class="ml-3.5 h-5 border-l-2 border-dashed" style="border-color:#D1DCE5;"></div>
-                <div class="flex items-center gap-3 opacity-40">
-                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background-color:#D1DCE5;">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
-                  </div>
-                  <div>
-                    <p class="text-xs font-semibold" style="color:#6B7280;">CONFIRMADA</p>
-                    <p class="text-xs" style="color:#9CA3AF;">Pendiente</p>
-                  </div>
-                </div>
+                </template>
               </div>
             </div>
 
