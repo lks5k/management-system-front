@@ -20,19 +20,20 @@
     empresaFilter: '',
     solicitudes: [
       { id:1, codigo:'P-S0147', empresa:'FANALCA S.A.', marca:'HONDA', contacto:'Laura Martínez', producto:'Etiquetas tejidas', cantidad:'5,000 uds', estado:'PENDIENTE', fecha:'11 Jun 2026', asesor:'Carlos P.' },
-      { id:2, codigo:'P-S0146', empresa:'NCS MODA S.A.S', marca:'VÉLEZ', contacto:'María Torres', producto:'Hangtags impresos', cantidad:'10,000 uds', estado:'CONFIRMADA', fecha:'10 Jun 2026', asesor:'Ana M.' },
+      { id:2, codigo:'P-S0146', empresa:'NCS MODA S.A.S', marca:'VÉLEZ', contacto:'María Torres', producto:'Hangtags impresos', cantidad:'10,000 uds', estado:'CONFIRMAR', fecha:'10 Jun 2026', asesor:'Ana M.' },
       { id:3, codigo:'P-S0145', empresa:'PRACTIPOLOS', marca:'POLO CLUB', contacto:'Pedro Gómez', producto:'Etiquetas bordadas', cantidad:'2,500 uds', estado:'BORRADOR', fecha:'09 Jun 2026', asesor:'Carlos P.' },
       { id:4, codigo:'P-S0144', empresa:'TEXTILES DEL VALLE', marca:'QUEST', contacto:'Rosa Herrera', producto:'Parches bordados', cantidad:'8,000 uds', estado:'PENDIENTE', fecha:'08 Jun 2026', asesor:'Ana M.' },
-      { id:5, codigo:'P-S0143', empresa:'NCS MODA S.A.S', marca:'AMERICANINO', contacto:'Jorge Silva', producto:'Estampado serigrafía', cantidad:'15,000 uds', estado:'CANCELADA', fecha:'06 Jun 2026', asesor:'Carlos P.' },
-      { id:6, codigo:'P-S0142', empresa:'FANALCA S.A.', marca:'GAS', contacto:'Carlos Ruiz', producto:'Transfer digital', cantidad:'3,000 uds', estado:'CONFIRMADA', fecha:'05 Jun 2026', asesor:'Ana M.' },
-      { id:7, codigo:'P-S0141', empresa:'TEXTILES DEL VALLE', marca:'TEJIDOS ANDINOS', contacto:'Luis Cardona', producto:'Etiquetas tejidas premium', cantidad:'12,000 uds', estado:'CONFIRMADA', fecha:'03 Jun 2026', asesor:'Carlos P.' },
+      { id:5, codigo:'P-S0143', empresa:'NCS MODA S.A.S', marca:'AMERICANINO', contacto:'Jorge Silva', producto:'Estampado serigrafía', cantidad:'15,000 uds', estado:'CANCELADO', fecha:'06 Jun 2026', asesor:'Carlos P.' },
+      { id:6, codigo:'P-S0142', empresa:'FANALCA S.A.', marca:'GAS', contacto:'Carlos Ruiz', producto:'Transfer digital', cantidad:'3,000 uds', estado:'COMPLETADO', fecha:'05 Jun 2026', asesor:'Ana M.' },
+      { id:7, codigo:'P-S0141', empresa:'TEXTILES DEL VALLE', marca:'TEJIDOS ANDINOS', contacto:'Luis Cardona', producto:'Etiquetas tejidas premium', cantidad:'12,000 uds', estado:'CONFIRMAR', fecha:'03 Jun 2026', asesor:'Carlos P.' },
       { id:8, codigo:'P-S0140', empresa:'DISTRIBUIDORA CALIDAD', marca:'SPORT WEAR', contacto:'Ana García', producto:'Sublimación full print', cantidad:'1,500 uds', estado:'BORRADOR', fecha:'01 Jun 2026', asesor:'Ana M.' },
     ],
     estadoColors: {
-      'BORRADOR': { bg:'#F3F4F6', color:'#6B7280' },
-      'PENDIENTE': { bg:'#FEF3C7', color:'#D97706' },
-      'CONFIRMADA': { bg:'#D1FAE5', color:'#059669' },
-      'CANCELADA': { bg:'#FEE2E2', color:'#DC2626' },
+      'BORRADOR':   { bg:'#F3F4F6', color:'#6B7280' },
+      'CONFIRMAR':  { bg:'#DBEAFE', color:'#2563EB' },
+      'PENDIENTE':  { bg:'#FEF3C7', color:'#D97706' },
+      'COMPLETADO': { bg:'#D1FAE5', color:'#059669' },
+      'CANCELADO':  { bg:'#FEE2E2', color:'#DC2626' },
     },
     get filtered() {
       return this.solicitudes.filter(s => {
@@ -47,10 +48,11 @@
     },
     get countByStatus() {
       return {
-        BORRADOR: this.solicitudes.filter(s=>s.estado==='BORRADOR').length,
-        PENDIENTE: this.solicitudes.filter(s=>s.estado==='PENDIENTE').length,
-        CONFIRMADA: this.solicitudes.filter(s=>s.estado==='CONFIRMADA').length,
-        CANCELADA: this.solicitudes.filter(s=>s.estado==='CANCELADA').length,
+        BORRADOR:   this.solicitudes.filter(s=>s.estado==='BORRADOR').length,
+        CONFIRMAR:  this.solicitudes.filter(s=>s.estado==='CONFIRMAR').length,
+        PENDIENTE:  this.solicitudes.filter(s=>s.estado==='PENDIENTE').length,
+        COMPLETADO: this.solicitudes.filter(s=>s.estado==='COMPLETADO').length,
+        CANCELADO:  this.solicitudes.filter(s=>s.estado==='CANCELADO').length,
       };
     },
     get empresas() { return [...new Set(this.solicitudes.map(s=>s.empresa))]; }
@@ -135,15 +137,20 @@
                 :style="estadoFilter==='PENDIENTE' ? 'background-color:#D97706;color:white;' : 'background:#FEF3C7;color:#D97706;border:1px solid #FDE68A;'">
           Pendiente <span class="font-bold" x-text="countByStatus.PENDIENTE"></span>
         </button>
-        <button @click="estadoFilter='CONFIRMADA'"
+        <button @click="estadoFilter='CONFIRMAR'"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                :style="estadoFilter==='CONFIRMADA' ? 'background-color:#059669;color:white;' : 'background:#D1FAE5;color:#059669;border:1px solid #A7F3D0;'">
-          Confirmada <span class="font-bold" x-text="countByStatus.CONFIRMADA"></span>
+                :style="estadoFilter==='CONFIRMAR' ? 'background-color:#2563EB;color:white;' : 'background:#DBEAFE;color:#2563EB;border:1px solid #BFDBFE;'">
+          Confirmar <span class="font-bold" x-text="countByStatus.CONFIRMAR"></span>
         </button>
-        <button @click="estadoFilter='CANCELADA'"
+        <button @click="estadoFilter='COMPLETADO'"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                :style="estadoFilter==='CANCELADA' ? 'background-color:#DC2626;color:white;' : 'background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;'">
-          Cancelada <span class="font-bold" x-text="countByStatus.CANCELADA"></span>
+                :style="estadoFilter==='COMPLETADO' ? 'background-color:#059669;color:white;' : 'background:#D1FAE5;color:#059669;border:1px solid #A7F3D0;'">
+          Completado <span class="font-bold" x-text="countByStatus.COMPLETADO"></span>
+        </button>
+        <button @click="estadoFilter='CANCELADO'"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                :style="estadoFilter==='CANCELADO' ? 'background-color:#DC2626;color:white;' : 'background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;'">
+          Cancelado <span class="font-bold" x-text="countByStatus.CANCELADO"></span>
         </button>
       </div>
 
@@ -222,7 +229,7 @@
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                         Ver
                       </a>
-                      <template x-if="s.estado !== 'CANCELADA'">
+                      <template x-if="s.estado !== 'CANCELADO' && s.estado !== 'COMPLETADO'">
                         <a href="solicitud-crear.html"
                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
                            style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
