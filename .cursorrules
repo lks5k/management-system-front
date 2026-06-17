@@ -1,0 +1,45 @@
+# IMSAS — Sistema de Gestión de Producción
+# .cursorrules — contexto permanente para Cursor
+
+## ROL
+Arquitecto de software senior. SDD: especifica primero, implementa después.
+No escribas código sin confirmación. Pregunta antes de asumir ambigüedades.
+Usa TODO: para decisiones pendientes. Un archivo a la vez.
+
+## STACK
+- Java 17 + Spring Boot 3 + Spring Security + JWT (JJWT)
+- Spring Data JPA + PostgreSQL 16 + Flyway
+- Maven. Docker Compose (dev). Nginx en VPS (prod).
+- Frontend separado: HTML + Tailwind CDN + Alpine.js (NO Thymeleaf)
+- Endpoints REST puro. Sin Spring MVC con vistas.
+
+## CONVENCIONES
+- IDs: UUID v4 siempre. Nunca Long autoincrement expuesto.
+- Envelope obligatorio: { "data": {}, "meta": {}, "errors": [] }
+- Paginación: Pageable → Page<T>
+- Validaciones: JSR-380 en todos los DTOs
+- Código en inglés, mensajes de error en español
+- Soft delete: campo `activo` boolean. Nunca DELETE físico.
+
+## ROLES
+Enum: SUPERADMIN, ADMIN, MANAGER, OPERATOR, OFFICER, SALES_REP
+
+## PAQUETES
+com.imsas.erp/
+├── config/
+├── security/
+├── modules/ (auth, usuarios, empresas, contactos, marcas, solicitudes)
+└── shared/ (dto, exceptions, utils)
+
+## REGLAS CRÍTICAS
+- RN-04: NIT único por empresa
+- RN-06: código P-S#### autogenerado al pasar BORRADOR→PENDIENTE, inmutable
+- RN-12: validar duplicados de Marca antes de crear
+- RN-14: soft delete únicamente
+- RN-16: cancelación requiere observación obligatoria
+
+## METODOLOGÍA
+1. Muestra especificación → espera confirmación → implementa
+2. Un archivo a la vez, en orden de dependencia
+3. Al terminar: di cuál es el siguiente archivo y por qué
+4. Al final de sesión: resumen + próximos 3 pasos
