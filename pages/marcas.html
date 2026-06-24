@@ -9,37 +9,60 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/app.css">
+  <script src="../assets/js/api.js"></script>
   <script src="../assets/js/app.js"></script>
 </head>
 <body>
 <div class="flex h-screen overflow-hidden"
   x-data="{
     sidebarOpen: window.innerWidth >= 1024,
+    session: null,
+    loading: true,
+    error: '',
     search: '',
     empresaFilter: '',
-    marcas: [
-      { id:1, nombre:'HONDA', empresa:'FANALCA S.A.', descripcion:'Ropa deportiva y casual', solicitudes:14 },
-      { id:2, nombre:'QUEST', empresa:'FANALCA S.A.', descripcion:'Outdoor y aventura', solicitudes:8 },
-      { id:3, nombre:'GAS', empresa:'FANALCA S.A.', descripcion:'Moda urbana juvenil', solicitudes:11 },
-      { id:4, nombre:'CHEVIGNON', empresa:'FANALCA S.A.', descripcion:'Estilo clásico americano', solicitudes:6 },
-      { id:5, nombre:'ESPRIT', empresa:'FANALCA S.A.', descripcion:'Moda contemporánea', solicitudes:3 },
-      { id:6, nombre:'VÉLEZ', empresa:'NCS MODA S.A.S', descripcion:'Moda femenina premium', solicitudes:22 },
-      { id:7, nombre:'AMERICANINO', empresa:'NCS MODA S.A.S', descripcion:'Denim casual', solicitudes:9 },
-      { id:8, nombre:'NALSANI', empresa:'NCS MODA S.A.S', descripcion:'Marroquinería y accesorios', solicitudes:5 },
-      { id:9, nombre:'POLO CLUB', empresa:'PRACTIPOLOS', descripcion:'Polo shirts premium', solicitudes:17 },
-      { id:10, nombre:'SPORT WEAR', empresa:'PRACTIPOLOS', descripcion:'Ropa deportiva', solicitudes:4 },
-      { id:11, nombre:'TEJIDOS ANDINOS', empresa:'TEXTILES DEL VALLE', descripcion:'Línea artesanal colombiana', solicitudes:7 },
-      { id:12, nombre:'HILO FINO', empresa:'TEXTILES DEL VALLE', descripcion:'Etiquetas y acabados premium', solicitudes:12 },
-    ],
+    marcas: [],
+    empresasMap: {},
+    empresasList: [],
+    deletingId: null,
+    get isAdmin() { return this.session?.role === 'SUPERADMIN' || this.session?.role === 'ADMIN'; },
+    async eliminar(id) {
+      if (!confirm('¿Eliminar esta marca? Esta acción no se puede deshacer.')) return;
+      this.deletingId = id;
+      this.error = '';
+      try {
+        await ImsasMarcas.eliminar(id);
+        this.marcas = this.marcas.filter(m => m.id !== id);
+      } catch (err) {
+        this.error = imsasErrorMsg(err);
+      } finally {
+        this.deletingId = null;
+      }
+    },
+    async init() {
+      this.session = imsasRequireAuth();
+      if (!this.session) return;
+      try {
+        const empPage = await ImsasEmpresas.listar({ size: 200 });
+        const emps = empPage.content;
+        this.empresasList = emps;
+        emps.forEach(e => { this.empresasMap[e.id] = e.razonSocial; });
+        const marcaPages = await Promise.all(
+          emps.map(e => ImsasMarcas.listarPorEmpresa(e.id).catch(() => ({ content: [] })))
+        );
+        this.marcas = marcaPages.flatMap(r => r.content ?? []);
+      } catch (err) {
+        this.error = imsasErrorMsg(err);
+      } finally {
+        this.loading = false;
+      }
+    },
     get filtered() {
       return this.marcas.filter(m => {
-        const matchSearch = !this.search || m.nombre.toLowerCase().includes(this.search.toLowerCase()) || m.descripcion.toLowerCase().includes(this.search.toLowerCase());
-        const matchEmpresa = !this.empresaFilter || m.empresa === this.empresaFilter;
+        const matchSearch = !this.search || m.nombre.toLowerCase().includes(this.search.toLowerCase());
+        const matchEmpresa = !this.empresaFilter || m.empresaId === this.empresaFilter;
         return matchSearch && matchEmpresa;
       });
-    },
-    get empresas() {
-      return [...new Set(this.marcas.map(m => m.empresa))];
     }
   }">
 
@@ -68,13 +91,16 @@
       <a href="empresas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Empresas</a>
       <a href="contactos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Contactos</a>
       <a href="marcas.html" class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>Marcas</a>
+      <a href="productos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Productos</a>
       <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Operaciones</p>
       <a href="solicitudes.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Solicitudes</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'">Administración</p>
+      <a href="usuarios.html" class="sidebar-link" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Usuarios</a>
     </nav>
     <div class="p-3" style="border-top:1px solid #D1DCE5;">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color:#4A7FA5;">AM</div>
-        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;">Ana Martínez</p><p class="text-xs" style="color:#4A7FA5;">Administrador</p></div>
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#4A7FA5;" x-text="session?.initials || '?'"></div>
+        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;" x-text="session?.name || 'Usuario'"></p><p class="text-xs truncate" style="color:#4A7FA5;" x-text="session?.roleLabel || ''"></p></div>
         <button @click="imsasLogout()" title="Cerrar sesión"><svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
       </div>
     </div>
@@ -105,6 +131,22 @@
 
     <main class="flex-1 overflow-y-auto p-6">
 
+      <!-- Loading -->
+      <div x-show="loading" class="flex items-center justify-center py-24">
+        <div class="flex flex-col items-center gap-3">
+          <svg class="w-8 h-8 animate-spin" style="color:#4A7FA5;" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+          <p class="text-sm" style="color:#6B7280;">Cargando marcas...</p>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div x-show="error && !loading" class="rounded-xl p-4 mb-4 flex items-start gap-3" style="background-color:#FEF2F2;border:1px solid #FECACA;">
+        <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#DC2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm" style="color:#DC2626;" x-text="error"></p>
+      </div>
+
+      <div x-show="!loading">
+
       <!-- Filters -->
       <div class="bg-white rounded-xl px-5 py-4 mb-4 flex flex-wrap items-center gap-4" style="border:1px solid #D1DCE5;">
         <div class="relative flex-1 min-w-48 max-w-sm">
@@ -120,8 +162,8 @@
                   style="border:1px solid #D1DCE5;color:#1A2B3C;background:white;"
                   onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
             <option value="">Todas</option>
-            <template x-for="emp in empresas" :key="emp">
-              <option :value="emp" x-text="emp"></option>
+            <template x-for="emp in empresasList" :key="emp.id">
+              <option :value="emp.id" x-text="emp.razonSocial"></option>
             </template>
           </select>
         </div>
@@ -143,19 +185,26 @@
               <svg class="w-5 h-5" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
             </div>
             <h3 class="text-sm font-bold mb-1" style="color:#1A2B3C;" x-text="marca.nombre"></h3>
-            <a href="empresa-form.html" class="text-xs mb-2" style="color:#4A7FA5;" x-text="marca.empresa"></a>
-            <p class="text-xs flex-1" style="color:#6B7280;" x-text="marca.descripcion"></p>
-            <div class="flex items-center justify-between mt-4 pt-4" style="border-top:1px solid #F4F7FA;">
-              <span class="text-xs" style="color:#6B7280;">
-                <span class="font-semibold" style="color:#1A2B3C;" x-text="marca.solicitudes"></span> solicitudes
-              </span>
-              <a href="marca-form.html"
+            <a :href="'empresa-form.html?id=' + marca.empresaId" class="text-xs mb-3" style="color:#4A7FA5;" x-text="empresasMap[marca.empresaId] || '—'"></a>
+            <div class="flex items-center justify-between mt-auto pt-4" style="border-top:1px solid #F4F7FA;">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+                    :style="marca.activo ? 'background:#D1FAE5;color:#059669;' : 'background:#FEE2E2;color:#DC2626;'"
+                    x-text="marca.activo ? 'Activa' : 'Inactiva'"></span>
+              <a :href="'marca-form.html?id=' + marca.id + '&empresaId=' + marca.empresaId"
                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
                  style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
                  onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 Editar
               </a>
+              <button x-show="isAdmin" @click="eliminar(marca.id)" :disabled="deletingId === marca.id"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                      style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;"
+                      onmouseover="this.style.backgroundColor='#FEE2E2'" onmouseout="this.style.backgroundColor='#FEF2F2'">
+                <svg x-show="deletingId !== marca.id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                <svg x-show="deletingId === marca.id" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                Eliminar
+              </button>
             </div>
           </div>
         </template>
@@ -166,6 +215,8 @@
           <p class="text-sm font-medium" style="color:#6B7280;">No se encontraron marcas</p>
         </div>
       </div>
+
+      </div><!-- /x-show="!loading" -->
 
     </main>
   </div>

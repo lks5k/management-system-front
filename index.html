@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/app.css">
+  <script src="assets/js/api.js"></script>
   <script src="assets/js/app.js"></script>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4" style="background-color: #F4F7FA;">
@@ -28,17 +29,22 @@
         if (!this.password) this.errors.password = 'La contraseña es requerida';
         return Object.keys(this.errors).length === 0;
       },
+      errorMsg: '',
       async submit() {
         if (!this.validate()) return;
         this.loading = true;
         this.showError = false;
-        await new Promise(r => setTimeout(r, 900));
-        this.loading = false;
-        const session = imsasLogin(this.email, this.password);
-        if (session) {
+        this.errorMsg = '';
+        try {
+          await imsasLogin(this.email, this.password);
           window.location.href = 'pages/dashboard.html';
-        } else {
+        } catch (err) {
           this.showError = true;
+          this.errorMsg = err.status === 401
+            ? 'Correo o contraseña incorrectos. Intente nuevamente.'
+            : imsasErrorMsg(err);
+        } finally {
+          this.loading = false;
         }
       },
       fillCredential(email, password) {
@@ -48,8 +54,9 @@
         this.errors = {};
       },
       init() {
-        const session = imsasGetSession();
-        if (session) window.location.href = 'pages/dashboard.html';
+        if (imsasGetSession() && imsasGetToken()) {
+          window.location.href = 'pages/dashboard.html';
+        }
       }
     }"
     x-init="init()"
@@ -84,7 +91,7 @@
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        <span>Correo o contraseña incorrectos. Intente nuevamente.</span>
+        <span x-text="errorMsg || 'Correo o contraseña incorrectos. Intente nuevamente.'"></span>
       </div>
 
       <form @submit.prevent="submit" novalidate>
@@ -204,16 +211,6 @@
             <span style="color:#1A2B3C;">operator@imsas.com</span>
           </div>
           <span style="color:#9CA3AF;">Operador</span>
-        </button>
-
-        <button type="button" @click="fillCredential('officer@imsas.com','officer123')"
-                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors bg-white hover:bg-[#F4F7FA]"
-                style="border:1px solid #D1DCE5;">
-          <div class="flex items-center gap-2">
-            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#D97706;">FR</span>
-            <span style="color:#1A2B3C;">officer@imsas.com</span>
-          </div>
-          <span style="color:#9CA3AF;">Oficial Comercial</span>
         </button>
 
         <button type="button" @click="fillCredential('sales-rep@imsas.com','salesrep123')"

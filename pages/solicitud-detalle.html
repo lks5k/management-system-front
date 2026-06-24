@@ -5,21 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Solicitud P-S0147 — IMSAS Gestión</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/app.css">
+  <script src="../assets/js/api.js"></script>
   <script src="../assets/js/app.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
 <div class="flex h-screen overflow-hidden"
   x-data="{
     sidebarOpen: window.innerWidth >= 1024,
+    session: null,
+    loading: true,
+    error: '',
+    saving: false,
     activeTab: 'general',
-    estado: 'PENDIENTE',
+    s: null,
     showStatusModal: false,
     showCancelModal: false,
-    newStatus: '',
     cancelObs: '',
     cancelObsError: false,
     estadoColors: {
@@ -29,6 +33,13 @@
       'COMPLETADO': { bg:'#D1FAE5', color:'#059669' },
       'CANCELADO':  { bg:'#FEE2E2', color:'#DC2626' },
     },
+    historialColors: {
+      'BORRADOR':   { bg:'#F3F4F6', color:'#6B7280', dot:'#9CA3AF' },
+      'CONFIRMAR':  { bg:'#DBEAFE', color:'#2563EB', dot:'#60A5FA' },
+      'PENDIENTE':  { bg:'#FEF3C7', color:'#D97706', dot:'#FBBF24' },
+      'COMPLETADO': { bg:'#D1FAE5', color:'#059669', dot:'#34D399' },
+      'CANCELADO':  { bg:'#FEE2E2', color:'#DC2626', dot:'#F87171' },
+    },
     transiciones: {
       'BORRADOR':   ['CONFIRMAR', 'CANCELADO'],
       'CONFIRMAR':  ['PENDIENTE', 'CANCELADO'],
@@ -36,27 +47,50 @@
       'COMPLETADO': [],
       'CANCELADO':  [],
     },
-    get nextStatuses() { return this.transiciones[this.estado] || []; },
-    changeStatus(s) {
-      if (s === 'CANCELADO') { this.newStatus = s; this.showStatusModal = false; this.showCancelModal = true; }
-      else { this.estado = s; this.showStatusModal = false; }
+    get estado() { return this.s?.estado ?? ''; },
+    get nextStatuses() { return this.transiciones[this.estado] ?? []; },
+    async init() {
+      this.session = imsasRequireAuth();
+      if (!this.session) return;
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (!id) { this.error = 'No se especificó un ID de solicitud.'; this.loading = false; return; }
+      try {
+        this.s = await ImsasSolicitudes.obtener(id);
+        document.title = (this.s.codigo || 'Solicitud') + ' — IMSAS Gestión';
+      } catch (err) {
+        this.error = imsasErrorMsg(err);
+      } finally {
+        this.loading = false;
+      }
     },
-    confirmCancel() {
+    async changeStatus(nuevoEstado) {
+      if (nuevoEstado === 'CANCELADO') {
+        this.showStatusModal = false;
+        this.showCancelModal = true;
+      } else {
+        this.showStatusModal = false;
+        await this.doChangeStatus(nuevoEstado, null);
+      }
+    },
+    async confirmCancel() {
       if (!this.cancelObs.trim()) { this.cancelObsError = true; return; }
-      this.estado = 'CANCELADO';
-      this.showCancelModal = false;
       this.cancelObsError = false;
+      await this.doChangeStatus('CANCELADO', this.cancelObs.trim());
+      this.showCancelModal = false;
     },
-    historial: [
-      { estado:'BORRADOR', fecha:'09 Jun 2026 14:22', usuario:'Carlos P.', obs:'' },
-      { estado:'PENDIENTE', fecha:'11 Jun 2026 09:15', usuario:'Ana M.', obs:'' },
-    ],
-    historialColors: {
-      'BORRADOR':   { bg:'#F3F4F6', color:'#6B7280', dot:'#9CA3AF' },
-      'CONFIRMAR':  { bg:'#DBEAFE', color:'#2563EB', dot:'#60A5FA' },
-      'PENDIENTE':  { bg:'#FEF3C7', color:'#D97706', dot:'#FBBF24' },
-      'COMPLETADO': { bg:'#D1FAE5', color:'#059669', dot:'#34D399' },
-      'CANCELADO':  { bg:'#FEE2E2', color:'#DC2626', dot:'#F87171' },
+    async doChangeStatus(nuevoEstado, observacionCancelacion) {
+      this.saving = true;
+      this.error = '';
+      try {
+        const payload = { nuevoEstado };
+        if (observacionCancelacion) payload.observacionCancelacion = observacionCancelacion;
+        this.s = await ImsasSolicitudes.cambiarEstado(this.s.id, payload);
+      } catch (err) {
+        this.error = imsasErrorMsg(err);
+      } finally {
+        this.saving = false;
+      }
     }
   }">
 
@@ -85,13 +119,16 @@
       <a href="empresas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Empresas</a>
       <a href="contactos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Contactos</a>
       <a href="marcas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>Marcas</a>
+      <a href="productos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Productos</a>
       <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Operaciones</p>
       <a href="solicitudes.html" class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Solicitudes</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'">Administración</p>
+      <a href="usuarios.html" class="sidebar-link" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Usuarios</a>
     </nav>
     <div class="p-3" style="border-top:1px solid #D1DCE5;">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color:#4A7FA5;">AM</div>
-        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;">Ana Martínez</p><p class="text-xs" style="color:#4A7FA5;">Administrador</p></div>
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#4A7FA5;" x-text="session?.initials || '?'"></div>
+        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;" x-text="session?.name || 'Usuario'"></p><p class="text-xs truncate" style="color:#4A7FA5;" x-text="session?.roleLabel || ''"></p></div>
         <button @click="imsasLogout()" title="Cerrar sesión"><svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
       </div>
     </div>
@@ -102,6 +139,18 @@
 
     <!-- Header -->
     <header class="flex-shrink-0 px-4 lg:px-6 pt-5 pb-0" style="background:white;border-bottom:1px solid #D1DCE5;">
+
+      <!-- Loading / error inline en header -->
+      <div x-show="loading" class="flex items-center gap-2 mb-4 py-3">
+        <svg class="w-5 h-5 animate-spin" style="color:#4A7FA5;" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+        <span class="text-sm" style="color:#6B7280;">Cargando solicitud...</span>
+      </div>
+      <div x-show="error && !loading" class="rounded-xl p-4 mb-4 flex items-start gap-3" style="background-color:#FEF2F2;border:1px solid #FECACA;">
+        <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#DC2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm" style="color:#DC2626;" x-text="error"></p>
+      </div>
+
+      <div x-show="!loading && s">
       <div class="flex items-start justify-between mb-4">
         <div class="flex items-center gap-3">
           <button @click="sidebarOpen = !sidebarOpen"
@@ -113,23 +162,29 @@
           <div>
             <nav class="text-xs flex items-center gap-1 mb-2" style="color:#9CA3AF;">
               <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span>
-              <a href="solicitudes.html" style="color:#4A7FA5;">Solicitudes</a><span>/</span><span>P-S0147</span>
+              <a href="solicitudes.html" style="color:#4A7FA5;">Solicitudes</a><span>/</span>
+              <span x-text="s?.codigo || '—'"></span>
             </nav>
             <div class="flex items-center gap-3">
-              <h1 class="text-xl font-bold font-mono" style="color:#1A2B3C;">P-S0147</h1>
+              <h1 class="text-xl font-bold font-mono" style="color:#1A2B3C;" x-text="s?.codigo || '—'"></h1>
               <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold"
-                    :style="`background:${estadoColors[estado].bg};color:${estadoColors[estado].color};`"
+                    :style="`background:${estadoColors[estado]?.bg ?? '#F3F4F6'};color:${estadoColors[estado]?.color ?? '#6B7280'};`"
                     x-text="estado"></span>
             </div>
-            <p class="text-xs mt-1" style="color:#6B7280;">FANALCA S.A. · HONDA · Etiquetas tejidas · 5,000 uds</p>
+            <p class="text-xs mt-1" style="color:#6B7280;">
+              <span x-text="s?.empresaRazonSocial || '—'"></span>
+              <template x-if="s?.marcaNombre"> · <span x-text="s?.marcaNombre"></span></template>
+              <template x-if="s?.productoNombre || s?.detalleProducto"> · <span x-text="s?.productoNombre || s?.detalleProducto"></span></template>
+              <template x-if="s?.cantidad"> · <span x-text="(s?.cantidad || 0).toLocaleString('es-CO') + ' uds'"></span></template>
+            </p>
           </div>
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap justify-end">
           <!-- Change status -->
           <div class="relative" x-show="nextStatuses.length > 0">
-            <button @click="showStatusModal = !showStatusModal"
+            <button @click="showStatusModal = !showStatusModal" :disabled="saving"
                     class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                     style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
                     onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
@@ -141,32 +196,25 @@
             <div x-show="showStatusModal" x-cloak @click.outside="showStatusModal=false"
                  x-transition class="absolute right-0 mt-1 bg-white rounded-xl shadow-lg py-1 z-20 min-w-36"
                  style="border:1px solid #D1DCE5;">
-              <template x-for="s in nextStatuses" :key="s">
-                <button @click="changeStatus(s)"
+              <template x-for="ns in nextStatuses" :key="ns">
+                <button @click="changeStatus(ns)"
                         class="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors"
                         style="color:#1A2B3C;"
                         onmouseover="this.style.backgroundColor='#F4F7FA'" onmouseout="this.style.backgroundColor=''"
-                        x-text="s"></button>
+                        x-text="ns"></button>
               </template>
             </div>
           </div>
 
-          <!-- Edit (disabled if cancelled) -->
-          <template x-if="estado !== 'CANCELADO' && estado !== 'COMPLETADO'">
-            <a href="solicitud-crear.html"
+          <!-- Editar (solo BORRADOR) -->
+          <template x-if="estado === 'BORRADOR'">
+            <a :href="'solicitud-crear.html?id=' + s?.id"
                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
                style="background-color:#2C5F7A;"
                onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
               Editar
             </a>
-          </template>
-          <template x-if="estado === 'CANCELADO' || estado === 'COMPLETADO'">
-            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed"
-                  style="background-color:#F3F4F6;color:#9CA3AF;">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-              Editar
-            </span>
           </template>
         </div>
       </div>
@@ -176,16 +224,11 @@
         <button class="tab-btn" :class="activeTab === 'general' ? 'active' : ''" @click="activeTab = 'general'">
           Datos generales
         </button>
-        <button class="tab-btn" :class="activeTab === 'corporativos' ? 'active' : ''" @click="activeTab = 'corporativos'">
-          Archivos corporativos
-        </button>
-        <button class="tab-btn" :class="activeTab === 'propios' ? 'active' : ''" @click="activeTab = 'propios'">
-          Archivos de solicitud
-        </button>
         <button class="tab-btn" :class="activeTab === 'historial' ? 'active' : ''" @click="activeTab = 'historial'">
           Historial
         </button>
       </div>
+      </div><!-- /x-show="!loading && s" (header) -->
     </header>
 
     <!-- Content -->
@@ -199,42 +242,61 @@
           <div class="lg:col-span-2 bg-white rounded-xl p-6" style="border:1px solid #D1DCE5;">
             <h2 class="text-sm font-semibold mb-4 pb-3" style="color:#1A2B3C;border-bottom:1px solid #D1DCE5;">Información de la solicitud</h2>
             <div class="space-y-0">
-              <div class="field-row"><span class="field-label">Código</span><span class="field-value font-mono font-bold" style="color:#2C5F7A;">P-S0147</span></div>
+              <div class="field-row"><span class="field-label">Código</span><span class="field-value font-mono font-bold" style="color:#2C5F7A;" x-text="s?.codigo || '—'"></span></div>
+              <div x-show="s?.codigoBaseDatos" class="field-row"><span class="field-label">Código BD</span><span class="field-value font-mono text-xs" x-text="s?.codigoBaseDatos"></span></div>
+              <div class="field-row"><span class="field-label">Tipo</span><span class="field-value" x-text="s?.tipo || '—'"></span></div>
               <div class="field-row"><span class="field-label">Estado</span>
                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
-                      :style="`background:${estadoColors[estado].bg};color:${estadoColors[estado].color};`"
+                      :style="`background:${estadoColors[estado]?.bg ?? '#F3F4F6'};color:${estadoColors[estado]?.color ?? '#6B7280'};`"
                       x-text="estado"></span>
               </div>
-              <div class="field-row"><span class="field-label">Asesor</span><span class="field-value">Carlos Pérez</span></div>
-              <div class="field-row"><span class="field-label">Fecha creación</span><span class="field-value">09 Jun 2026</span></div>
-              <div class="field-row"><span class="field-label">Última modificación</span><span class="field-value">11 Jun 2026</span></div>
+              <div class="field-row"><span class="field-label">Asesor</span><span class="field-value" x-text="s?.asesorNombre || '—'"></span></div>
+              <div class="field-row"><span class="field-label">Fecha creación</span><span class="field-value" x-text="imsasFechaCorta(s?.creadoEn)"></span></div>
+              <div class="field-row"><span class="field-label">Última modificación</span><span class="field-value" x-text="imsasFechaCorta(s?.actualizadoEn)"></span></div>
             </div>
 
             <h2 class="text-sm font-semibold mt-6 mb-4 pb-3" style="color:#1A2B3C;border-bottom:1px solid #D1DCE5;">Cliente</h2>
             <div class="space-y-0">
-              <div class="field-row"><span class="field-label">Empresa</span><a href="empresa-form.html" class="field-value font-medium" style="color:#4A7FA5;">FANALCA S.A.</a></div>
-              <div class="field-row"><span class="field-label">NIT</span><span class="field-value font-mono text-xs">890.900.513-7</span></div>
-              <div class="field-row"><span class="field-label">Contacto</span><span class="field-value">Laura Martínez</span></div>
-              <div class="field-row"><span class="field-label">Cargo</span><span class="field-value text-gray-500">Compradora</span></div>
+              <div class="field-row"><span class="field-label">Empresa</span>
+                <span class="field-value font-medium" style="color:#4A7FA5;" x-text="s?.empresaRazonSocial || '—'"></span>
+              </div>
+              <div class="field-row"><span class="field-label">Contacto</span><span class="field-value" x-text="s?.contactoNombre || '—'"></span></div>
               <div class="field-row"><span class="field-label">Marca</span>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold" style="background-color:#E8EEF4;color:#1A2B3C;">
+                <span x-show="s?.marcaNombre" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold" style="background-color:#E8EEF4;color:#1A2B3C;">
                   <svg class="w-3 h-3" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
-                  HONDA
+                  <span x-text="s?.marcaNombre"></span>
                 </span>
+                <span x-show="!s?.marcaNombre" class="field-value">—</span>
               </div>
             </div>
 
             <h2 class="text-sm font-semibold mt-6 mb-4 pb-3" style="color:#1A2B3C;border-bottom:1px solid #D1DCE5;">Especificaciones de producción</h2>
             <div class="space-y-0">
-              <div class="field-row"><span class="field-label">Producto</span><span class="field-value font-medium">Etiqueta tejida</span></div>
-              <div class="field-row"><span class="field-label">Cantidad</span><span class="field-value">5,000 unidades</span></div>
-              <div class="field-row"><span class="field-label">Técnica</span><span class="field-value">Tejido jacquard</span></div>
-              <div class="field-row"><span class="field-label">Material</span><span class="field-value">Satén polyester</span></div>
-              <div class="field-row"><span class="field-label">Medidas</span><span class="field-value">3 cm × 5 cm</span></div>
-              <div class="field-row"><span class="field-label">Colores</span><span class="field-value">2 colores — Pantone 286C / Blanco</span></div>
-              <div class="field-row" style="border:none;padding-bottom:0;">
+              <div class="field-row"><span class="field-label">Producto</span><span class="field-value font-medium" x-text="s?.productoNombre || '—'"></span></div>
+              <div x-show="s?.detalleProducto" class="field-row"><span class="field-label">Detalle</span><span class="field-value" x-text="s?.detalleProducto"></span></div>
+              <div class="field-row"><span class="field-label">Cantidad</span><span class="field-value" x-text="s?.cantidad ? s.cantidad.toLocaleString('es-CO') + ' uds' : '—'"></span></div>
+              <div class="field-row"><span class="field-label">Técnica</span><span class="field-value" x-text="s?.tecnica || '—'"></span></div>
+              <div x-show="s?.ancho || s?.largo" class="field-row"><span class="field-label">Medidas</span>
+                <span class="field-value" x-text="(s?.ancho ? s.ancho + ' cm' : '—') + ' × ' + (s?.largo ? s.largo + ' cm' : '—')"></span>
+              </div>
+              <div x-show="s?.coloresFrente != null || s?.coloresReverso != null" class="field-row"><span class="field-label">Colores F/R</span>
+                <span class="field-value" x-text="(s?.coloresFrente ?? '—') + ' / ' + (s?.coloresReverso ?? '—')"></span>
+              </div>
+              <div x-show="s?.costura" class="field-row"><span class="field-label">Costura</span><span class="field-value" x-text="s?.costura?.replace(/_/g,' ')"></span></div>
+              <div x-show="s?.ordenCompra" class="field-row"><span class="field-label">Orden de compra</span><span class="field-value" x-text="s?.ordenCompra"></span></div>
+              <div x-show="s?.precioReferencia != null" class="field-row"><span class="field-label">Precio referencia</span><span class="field-value" x-text="s?.precioReferencia != null ? '$ ' + s.precioReferencia.toLocaleString('es-CO') : '—'"></span></div>
+              <div x-show="s?.abono != null" class="field-row"><span class="field-label">Abono</span><span class="field-value" x-text="s?.abono != null ? '$ ' + s.abono.toLocaleString('es-CO') : '—'"></span></div>
+              <div x-show="s?.cantidadVersionesEntregadas != null" class="field-row"><span class="field-label">Versiones entregadas</span><span class="field-value" x-text="s?.cantidadVersionesEntregadas"></span></div>
+              <div x-show="s?.descripcion" class="field-row"><span class="field-label">Descripción</span>
+                <p class="field-value text-xs leading-relaxed" style="color:#6B7280;" x-text="s?.descripcion"></p>
+              </div>
+              <div x-show="s?.observaciones" class="field-row" style="border:none;padding-bottom:0;">
                 <span class="field-label">Observaciones</span>
-                <p class="field-value text-xs leading-relaxed" style="color:#6B7280;">Ajustar pantone de fondo al 90% para mejorar contraste. El cliente requiere muestra de aprobación antes de producción. Enviar a dirección de planta en Bogotá.</p>
+                <p class="field-value text-xs leading-relaxed" style="color:#6B7280;" x-text="s?.observaciones"></p>
+              </div>
+              <div x-show="s?.observacionCancelacion" class="field-row" style="border:none;padding-bottom:0;">
+                <span class="field-label" style="color:#DC2626;">Motivo cancelación</span>
+                <p class="field-value text-xs leading-relaxed" style="color:#DC2626;" x-text="s?.observacionCancelacion"></p>
               </div>
             </div>
           </div>
@@ -290,128 +352,58 @@
         </div>
       </div>
 
-      <!-- TAB: Corporate files -->
-      <div x-show="activeTab === 'corporativos'" x-cloak>
-        <div class="bg-white rounded-xl p-6" style="border:1px solid #D1DCE5;">
-          <div class="flex items-center justify-between mb-5">
-            <h2 class="text-sm font-semibold" style="color:#1A2B3C;">Archivos corporativos asociados</h2>
-            <p class="text-xs" style="color:#6B7280;">Estos archivos pertenecen a la empresa y pueden reutilizarse en múltiples solicitudes (RN-13)</p>
-          </div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between p-4 rounded-xl" style="background-color:#F4F7FA;border:1px solid #D1DCE5;">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#FEF3C7;">
-                  <svg class="w-5 h-5" style="color:#D97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                </div>
-                <div>
-                  <p class="text-sm font-medium" style="color:#1A2B3C;">Logo_FANALCA_v3_2024.ai</p>
-                  <p class="text-xs" style="color:#6B7280;">Logo corporativo · Versión 3 · Cargado 15 Mar 2024</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs px-2.5 py-1 rounded-full" style="background:#D1FAE5;color:#059669;">Asociado</span>
-                <button class="text-xs px-3 py-1.5 rounded-lg" style="background:white;color:#4A7FA5;border:1px solid #D1DCE5;">
-                  Descargar
-                </button>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between p-4 rounded-xl" style="background-color:#F4F7FA;border:1px solid #D1DCE5;">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#EFF6FF;">
-                  <svg class="w-5 h-5" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                </div>
-                <div>
-                  <p class="text-sm font-medium" style="color:#1A2B3C;">Manual_de_Marca_HONDA_2023.pdf</p>
-                  <p class="text-xs" style="color:#6B7280;">Manual de marca · Versión 1 · Cargado 10 Ene 2023</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs px-2.5 py-1 rounded-full" style="background:#D1FAE5;color:#059669;">Asociado</span>
-                <button class="text-xs px-3 py-1.5 rounded-lg" style="background:white;color:#4A7FA5;border:1px solid #D1DCE5;">Descargar</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB: Own files -->
-      <div x-show="activeTab === 'propios'" x-cloak>
-        <div class="bg-white rounded-xl p-6" style="border:1px solid #D1DCE5;">
-          <div class="flex items-center justify-between mb-5">
-            <h2 class="text-sm font-semibold" style="color:#1A2B3C;">Archivos de la solicitud</h2>
-            <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style="background-color:#2C5F7A;">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-              Subir archivo
-            </button>
-          </div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between p-4 rounded-xl" style="background-color:#F4F7FA;border:1px solid #D1DCE5;">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#F0FDF4;">
-                  <svg class="w-5 h-5" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                </div>
-                <div>
-                  <p class="text-sm font-medium" style="color:#1A2B3C;">referencia_cliente_honda_jun2026.jpg</p>
-                  <p class="text-xs" style="color:#6B7280;">Imagen de referencia · 2.4 MB · 11 Jun 2026</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs px-2.5 py-1 rounded-full" style="background:#FEF3C7;color:#D97706;">Exclusivo</span>
-                <button class="text-xs px-3 py-1.5 rounded-lg" style="background:white;color:#4A7FA5;border:1px solid #D1DCE5;">Descargar</button>
-                <button class="text-xs px-2.5 py-1.5 rounded-lg" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="mt-4 p-3 rounded-lg text-xs" style="background-color:#E8EEF4;color:#4A7FA5;">
-            Los archivos exclusivos de solicitud pertenecen únicamente a esta solicitud y no pueden reutilizarse (RN-14).
-          </div>
-        </div>
-      </div>
-
       <!-- TAB: History -->
       <div x-show="activeTab === 'historial'" x-cloak>
         <div class="bg-white rounded-xl p-6" style="border:1px solid #D1DCE5;">
           <h2 class="text-sm font-semibold mb-5" style="color:#1A2B3C;">Historial de cambios de estado</h2>
           <div class="space-y-0">
-            <template x-for="(item, i) in historial" :key="i">
-              <div class="flex gap-4 pb-6 relative">
-                <!-- Line -->
-                <div x-show="i < historial.length - 1"
-                     class="absolute left-3.5 top-7 bottom-0 w-0.5" style="background-color:#D1DCE5;"></div>
-                <!-- Dot -->
-                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 z-10"
-                     :style="`background-color:${historialColors[item.estado].dot};`">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                </div>
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                          :style="`background:${historialColors[item.estado].bg};color:${historialColors[item.estado].color};`"
-                          x-text="item.estado"></span>
-                    <span class="text-xs" style="color:#9CA3AF;" x-text="item.fecha"></span>
-                  </div>
-                  <p class="text-xs" style="color:#6B7280;">Por <strong x-text="item.usuario"></strong></p>
-                  <p x-show="item.obs" class="text-xs mt-1 italic" style="color:#9CA3AF;" x-text="'Obs: ' + item.obs"></p>
-                </div>
+            <template x-if="!s?.historial || s.historial.length === 0">
+              <div class="py-8 text-center">
+                <p class="text-sm" style="color:#9CA3AF;">El historial de cambios no está disponible en esta versión.</p>
+                <p class="text-xs mt-1" style="color:#D1DCE5;">Estado actual: <strong x-text="estado"></strong></p>
               </div>
             </template>
 
-            <!-- Current state indicator -->
-            <div class="flex gap-4">
-              <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-dashed"
-                   :style="`border-color:${estadoColors[estado].color};`">
-                <div class="w-2.5 h-2.5 rounded-full" :style="`background-color:${estadoColors[estado].color};`"></div>
+            <template x-if="s?.historial && s.historial.length > 0">
+              <div>
+                <template x-for="(item, i) in s.historial" :key="i">
+                  <div class="flex gap-4 pb-6 relative">
+                    <div x-show="i < s.historial.length - 1"
+                         class="absolute left-3.5 top-7 bottom-0 w-0.5" style="background-color:#D1DCE5;"></div>
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 z-10"
+                         :style="`background-color:${historialColors[item.estado]?.dot ?? '#9CA3AF'};`">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                              :style="`background:${historialColors[item.estado]?.bg ?? '#F3F4F6'};color:${historialColors[item.estado]?.color ?? '#6B7280'};`"
+                              x-text="item.estado"></span>
+                        <span class="text-xs" style="color:#9CA3AF;" x-text="imsasFechaCorta(item.fecha || item.creadoEn)"></span>
+                      </div>
+                      <p class="text-xs" style="color:#6B7280;">Por <strong x-text="item.usuario || item.usuarioNombre || '—'"></strong></p>
+                      <p x-show="item.obs || item.observacion" class="text-xs mt-1 italic" style="color:#9CA3AF;" x-text="'Obs: ' + (item.obs || item.observacion)"></p>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Current state indicator -->
+                <div class="flex gap-4">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-dashed"
+                       :style="`border-color:${estadoColors[estado]?.color ?? '#9CA3AF'};`">
+                    <div class="w-2.5 h-2.5 rounded-full" :style="`background-color:${estadoColors[estado]?.color ?? '#9CA3AF'};`"></div>
+                  </div>
+                  <div class="flex-1 pt-1">
+                    <p class="text-xs font-semibold" :style="`color:${estadoColors[estado]?.color ?? '#6B7280'};`" x-text="'Estado actual: ' + estado"></p>
+                  </div>
+                </div>
               </div>
-              <div class="flex-1 pt-1">
-                <p class="text-xs font-semibold" :style="`color:${estadoColors[estado].color};`" x-text="'Estado actual: ' + estado"></p>
-              </div>
-            </div>
+            </template>
           </div>
         </div>
       </div>
+
+      </div><!-- /x-show="!loading && s" -->
 
     </main>
   </div>
