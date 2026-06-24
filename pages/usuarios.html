@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Empresas — IMSAS Gestión</title>
+  <title>Usuarios — IMSAS Gestión</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../assets/js/api.js"></script>
   <script src="../assets/js/app.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/app.css">
-  <script src="../assets/js/api.js"></script>
 </head>
 <body>
 <div class="flex h-screen overflow-hidden"
@@ -18,49 +18,51 @@
     sidebarOpen: window.innerWidth >= 1024,
     session: null,
     search: '',
-    loading: false,
-    error: null,
-  empresas: [],
-  deletingId: null,
-  get isAdmin() { return this.session?.role === 'SUPERADMIN' || this.session?.role === 'ADMIN'; },
-  get filtered() {
+    loading: true,
+    error: '',
+    usuarios: [],
+    togglingId: null,
+    rolLabels: { SUPERADMIN: 'Super Admin', ADMIN: 'Administrador', MANAGER: 'Gerente', OPERATOR: 'Operador', SALES_REP: 'Asesor Comercial' },
+    get filtered() {
       const q = this.search.toLowerCase();
-      return this.empresas.filter(e =>
-        e.razonSocial.toLowerCase().includes(q) ||
-        e.numeroDocumento.includes(q) ||
-        (e.ciudad ?? '').toLowerCase().includes(q)
+      return this.usuarios.filter(u =>
+        u.nombre.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (this.rolLabels[u.rol] ?? u.rol).toLowerCase().includes(q)
       );
     },
     async init() {
       this.session = imsasRequireAuth();
       if (!this.session) return;
-      this.loading = true;
-      this.error = null;
+      if (this.session.role !== 'SUPERADMIN' && this.session.role !== 'ADMIN') {
+        window.location.href = 'dashboard.html';
+        return;
+      }
       try {
-        const page = await ImsasEmpresas.listar({ size: 200 });
-        this.empresas = page.content;
+        const page = await ImsasUsuarios.listar({ size: 200 });
+        this.usuarios = page.content;
       } catch (err) {
         this.error = imsasErrorMsg(err);
       } finally {
         this.loading = false;
       }
     },
-    async eliminar(id) {
-      if (!confirm('¿Eliminar esta empresa? Esta acción no se puede deshacer.')) return;
-      this.deletingId = id;
-      this.error = null;
+    async toggleEstado(usuario) {
+      this.togglingId = usuario.id;
+      this.error = '';
       try {
-        await ImsasEmpresas.eliminar(id);
-        this.empresas = this.empresas.filter(e => e.id !== id);
+        await ImsasUsuarios.cambiarEstado(usuario.id, { activo: !usuario.activo });
+        const idx = this.usuarios.findIndex(u => u.id === usuario.id);
+        if (idx !== -1) this.usuarios[idx] = { ...this.usuarios[idx], activo: !usuario.activo };
       } catch (err) {
         this.error = imsasErrorMsg(err);
       } finally {
-        this.deletingId = null;
+        this.togglingId = null;
       }
     }
   }">
 
-  <!-- SIDEBAR -->
+  <!-- SIDEBAR overlay -->
   <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
        class="fixed inset-0 z-20 bg-black/30 lg:hidden"></div>
   <aside class="flex-shrink-0 flex flex-col h-screen fixed top-0 left-0 z-30 overflow-y-auto"
@@ -71,27 +73,27 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="translate-x-0"
          x-transition:leave-end="-translate-x-full"
-         style="width:240px; background-color:#E8EEF4; border-right:1px solid #D1DCE5;">
+         style="width:240px;background-color:#E8EEF4;border-right:1px solid #D1DCE5;">
     <div class="h-16 flex items-center px-4 gap-3 flex-shrink-0" style="border-bottom:1px solid #D1DCE5;">
-      <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background-color:#4A7FA5;">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background-color:#4A7FA5;">
         <svg class="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
       </div>
-      <div><p class="text-sm font-bold leading-tight" style="color:#1A2B3C;">IMSAS</p><p class="text-xs" style="color:#4A7FA5;">Gestión de Producción</p></div>
+      <div><p class="text-sm font-bold" style="color:#1A2B3C;">IMSAS</p><p class="text-xs" style="color:#4A7FA5;">Gestión de Producción</p></div>
     </div>
     <nav class="flex-1 py-4 px-3 space-y-1">
       <p class="text-xs font-semibold uppercase tracking-wider px-2 mb-2" style="color:#4A7FA5;opacity:.7;">Principal</p>
       <a href="dashboard.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
       <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Maestros</p>
-      <a href="empresas.html" class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Empresas</a>
+      <a href="empresas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Empresas</a>
       <a href="contactos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Contactos</a>
       <a href="marcas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>Marcas</a>
       <a href="productos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Productos</a>
       <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Operaciones</p>
       <a href="solicitudes.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Solicitudes</a>
-      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'">Administración</p>
-      <a href="usuarios.html" class="sidebar-link" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Usuarios</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Administración</p>
+      <a href="usuarios.html" class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Usuarios</a>
     </nav>
-    <div class="p-3 flex-shrink-0" style="border-top:1px solid #D1DCE5;">
+    <div class="p-3" style="border-top:1px solid #D1DCE5;">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#4A7FA5;" x-text="session?.initials||'?'"></div>
         <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;" x-text="session?.name||'Usuario'"></p><p class="text-xs truncate" style="color:#4A7FA5;" x-text="session?.roleLabel||''"></p></div>
@@ -102,7 +104,7 @@
 
   <!-- MAIN -->
   <div class="flex-1 flex flex-col overflow-hidden ml-0 lg:ml-60">
-    <header class="h-16 flex items-center justify-between px-4 lg:px-6 flex-shrink-0" style="background:white; border-bottom:1px solid #D1DCE5;">
+    <header class="h-16 flex items-center justify-between px-4 lg:px-6 flex-shrink-0" style="background:white;border-bottom:1px solid #D1DCE5;">
       <div class="flex items-center gap-3">
         <button @click="sidebarOpen = !sidebarOpen"
                 class="lg:hidden p-1.5 rounded-lg -ml-1" style="color:#4A7FA5;">
@@ -111,92 +113,106 @@
           </svg>
         </button>
         <div>
-          <h1 class="text-base font-semibold" style="color:#1A2B3C;">Empresas</h1>
+          <h1 class="text-base font-semibold" style="color:#1A2B3C;">Usuarios</h1>
           <nav class="text-xs flex items-center gap-1" style="color:#9CA3AF;">
-            <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span><span>Empresas</span>
+            <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span><span>Usuarios</span>
           </nav>
         </div>
       </div>
-      <a href="empresa-form.html" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;" onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
+      <a href="usuario-form.html" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;" onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-        Nueva Empresa
+        Nuevo Usuario
       </a>
     </header>
 
     <main class="flex-1 overflow-y-auto p-6">
 
-      <!-- Filters bar -->
+      <!-- Filtro -->
       <div class="bg-white rounded-xl px-5 py-4 mb-4 flex items-center gap-4" style="border:1px solid #D1DCE5;">
         <div class="relative flex-1 max-w-sm">
           <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style="color:#9CA3AF;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input type="text" x-model="search" placeholder="Buscar por razón social, NIT o ciudad..."
+          <input type="text" x-model="search" placeholder="Buscar por nombre, correo o rol..."
                  class="w-full pl-9 pr-4 py-2 text-sm rounded-lg outline-none"
-                 style="border:1px solid #D1DCE5; color:#1A2B3C; background:white;"
+                 style="border:1px solid #D1DCE5;color:#1A2B3C;background:white;"
                  onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
         </div>
-        <div class="flex items-center gap-2 ml-auto">
-          <span class="text-xs" style="color:#6B7280;" x-show="!loading"><span x-text="filtered.length"></span> empresa(s)</span>
-        </div>
+        <span class="text-xs ml-auto" style="color:#6B7280;" x-show="!loading"><span x-text="filtered.length"></span> usuario(s)</span>
       </div>
 
-      <!-- Error / Loading -->
-      <div x-show="loading" class="flex items-center justify-center py-20">
-        <svg class="w-6 h-6 animate-spin" style="color:#4A7FA5;" fill="none" viewBox="0 0 24 24">
+      <!-- Loading -->
+      <div x-show="loading" class="flex items-center justify-center py-24">
+        <svg class="w-7 h-7 animate-spin" style="color:#4A7FA5;" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
-        <span class="ml-3 text-sm" style="color:#6B7280;">Cargando empresas...</span>
-      </div>
-      <div x-show="error && !loading" class="flex items-center gap-3 p-4 rounded-xl mb-4 text-sm" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <span x-text="error"></span>
+        <span class="ml-3 text-sm" style="color:#6B7280;">Cargando usuarios...</span>
       </div>
 
-      <!-- Table -->
+      <!-- Error -->
+      <div x-show="error && !loading" class="rounded-xl p-4 mb-4 flex items-start gap-3" style="background-color:#FEF2F2;border:1px solid #FECACA;">
+        <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#DC2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm" style="color:#DC2626;" x-text="error"></p>
+      </div>
+
+      <!-- Tabla -->
       <div x-show="!loading" class="bg-white rounded-xl overflow-hidden" style="border:1px solid #D1DCE5;">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr style="background-color:#F4F7FA; border-bottom:1px solid #D1DCE5;">
-                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">N.º Documento</th>
-                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Razón Social</th>
-                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Ciudad</th>
-                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Teléfono</th>
+              <tr style="background-color:#F4F7FA;border-bottom:1px solid #D1DCE5;">
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Usuario</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Correo</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Rol</th>
                 <th class="text-center text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Estado</th>
+                <th class="text-left text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Creado</th>
                 <th class="text-right text-xs font-semibold px-5 py-3.5" style="color:#4A7FA5;">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <template x-for="empresa in filtered" :key="empresa.id">
+              <template x-for="u in filtered" :key="u.id">
                 <tr class="border-t transition-colors" style="border-color:#D1DCE5;"
                     onmouseover="this.style.backgroundColor='#F4F7FA'" onmouseout="this.style.backgroundColor=''">
                   <td class="px-5 py-3.5">
-                    <span class="font-mono text-xs font-medium" style="color:#4A7FA5;" x-text="empresa.tipoDocumento + ' ' + empresa.numeroDocumento"></span>
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                           style="background-color:#4A7FA5;"
+                           x-text="u.nombre.split(' ').map(n=>n[0]).slice(0,2).join('')"></div>
+                      <div>
+                        <p class="font-medium text-sm" style="color:#1A2B3C;" x-text="u.nombre"></p>
+                        <p class="text-xs" style="color:#9CA3AF;" x-show="u.id === session?.id">Tú</p>
+                      </div>
+                    </div>
                   </td>
-                  <td class="px-5 py-3.5"><span class="font-medium text-sm" style="color:#1A2B3C;" x-text="empresa.razonSocial"></span></td>
-                  <td class="px-5 py-3.5 text-sm" style="color:#6B7280;" x-text="empresa.ciudad || '—'"></td>
-                  <td class="px-5 py-3.5 text-sm" style="color:#6B7280;" x-text="empresa.telefono || '—'"></td>
+                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;" x-text="u.email"></td>
+                  <td class="px-5 py-3.5">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+                          :style="u.rol === 'SUPERADMIN' ? 'background:#EDE9FE;color:#7C3AED;' : u.rol === 'ADMIN' ? 'background:#DBEAFE;color:#1D4ED8;' : 'background:#F3F4F6;color:#374151;'"
+                          x-text="rolLabels[u.rol] ?? u.rol"></span>
+                  </td>
                   <td class="px-5 py-3.5 text-center">
-                    <span x-show="empresa.activo" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style="background:#D1FAE5; color:#059669;"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Activa</span>
-                    <span x-show="!empresa.activo" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style="background:#F3F4F6; color:#6B7280;"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Inactiva</span>
+                    <span x-show="u.activo" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style="background:#D1FAE5;color:#059669;"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Activo</span>
+                    <span x-show="!u.activo" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style="background:#FEE2E2;color:#DC2626;"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Inactivo</span>
                   </td>
+                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;" x-text="imsasFechaCorta(u.creadoEn)"></td>
                   <td class="px-5 py-3.5 text-right">
                     <div class="flex items-center justify-end gap-2">
-                      <a :href="'empresa-form.html?id=' + empresa.id" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium" style="background-color:#F4F7FA; color:#1A2B3C; border:1px solid #D1DCE5;" onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
+                      <a :href="'usuario-form.html?id=' + u.id"
+                         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                         style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
+                         onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         Editar
                       </a>
-                      <a :href="'solicitudes.html?empresaId=' + empresa.id" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white" style="background-color:#4A7FA5;" onmouseover="this.style.backgroundColor='#2C5F7A'" onmouseout="this.style.backgroundColor='#4A7FA5'">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        Ver solicitudes
-                      </a>
-                      <button x-show="isAdmin" @click="eliminar(empresa.id)" :disabled="deletingId === empresa.id"
+                      <!-- No se puede desactivar el propio usuario -->
+                      <button x-show="u.id !== session?.id"
+                              @click="toggleEstado(u)" :disabled="togglingId === u.id"
                               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
-                              style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;"
-                              onmouseover="this.style.backgroundColor='#FEE2E2'" onmouseout="this.style.backgroundColor='#FEF2F2'">
-                        <svg x-show="deletingId !== empresa.id" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        <svg x-show="deletingId === empresa.id" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                        Eliminar
+                              :style="u.activo ? 'background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;' : 'background-color:#F0FDF4;color:#059669;border:1px solid #BBF7D0;'"
+                              onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+                        <svg x-show="togglingId !== u.id && u.activo" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                        <svg x-show="togglingId !== u.id && !u.activo" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <svg x-show="togglingId === u.id" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        <span x-text="u.activo ? 'Desactivar' : 'Activar'"></span>
                       </button>
                     </div>
                   </td>
@@ -204,8 +220,8 @@
               </template>
               <tr x-show="!loading && filtered.length === 0">
                 <td colspan="6" class="px-5 py-16 text-center">
-                  <svg class="w-10 h-10 mx-auto mb-3" style="color:#D1DCE5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                  <p class="text-sm font-medium" style="color:#6B7280;">No se encontraron empresas</p>
+                  <svg class="w-10 h-10 mx-auto mb-3" style="color:#D1DCE5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                  <p class="text-sm font-medium" style="color:#6B7280;">No se encontraron usuarios</p>
                   <p class="text-xs mt-1" style="color:#9CA3AF;" x-show="search">Intente con otro término de búsqueda</p>
                 </td>
               </tr>
@@ -213,7 +229,7 @@
           </table>
         </div>
         <div class="px-5 py-4" style="border-top:1px solid #D1DCE5;">
-          <p class="text-xs" style="color:#6B7280;">Mostrando <strong x-text="filtered.length"></strong> de <strong x-text="empresas.length"></strong> empresa(s)</p>
+          <p class="text-xs" style="color:#6B7280;">Mostrando <strong x-text="filtered.length"></strong> de <strong x-text="usuarios.length"></strong> usuario(s)</p>
         </div>
       </div>
 

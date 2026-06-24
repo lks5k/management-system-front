@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — IMSAS Gestión</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../assets/js/api.js"></script>
   <script src="../assets/js/app.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,8 +17,40 @@
   x-data="{
     sidebarOpen: window.innerWidth >= 1024,
     session: null,
-    init() {
+    statsLoading: true,
+    kpi: { empresas: '—', total: '—', pendientes: '—', completados: '—' },
+    stats: { BORRADOR: 0, CONFIRMAR: 0, PENDIENTE: 0, COMPLETADO: 0, CANCELADO: 0 },
+    statsTotal: 0,
+    solicitudesRecientes: [],
+    estadoColors: {
+      'BORRADOR':   { bg:'#F3F4F6', color:'#6B7280' },
+      'CONFIRMAR':  { bg:'#DBEAFE', color:'#2563EB' },
+      'PENDIENTE':  { bg:'#FEF3C7', color:'#D97706' },
+      'COMPLETADO': { bg:'#D1FAE5', color:'#059669' },
+      'CANCELADO':  { bg:'#FEE2E2', color:'#DC2626' },
+    },
+    async init() {
       this.session = imsasRequireAuth();
+      if (!this.session) return;
+      try {
+        const [empPage, solPage] = await Promise.all([
+          ImsasEmpresas.listar({ size: 1 }),
+          ImsasSolicitudes.listar({ size: 50, page: 0 })
+        ]);
+        this.kpi.empresas = empPage.totalElements ?? 0;
+        this.kpi.total    = solPage.totalElements ?? 0;
+        const lista = solPage.content ?? [];
+        this.solicitudesRecientes = lista.slice(0, 5);
+        lista.forEach(s => { if (this.stats[s.estado] !== undefined) this.stats[s.estado]++; });
+        this.statsTotal = this.kpi.total;
+        this.kpi.pendientes  = this.stats.PENDIENTE;
+        this.kpi.completados = this.stats.COMPLETADO;
+      } catch { /* el error no impide navegar */ }
+      finally { this.statsLoading = false; }
+    },
+    pct(n) {
+      if (!this.statsTotal || this.statsTotal === 0) return '0%';
+      return Math.round((n / this.statsTotal) * 100) + '%';
     }
   }"
   x-init="init()">
@@ -66,11 +99,14 @@
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
         Marcas
       </a>
+      <a href="productos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Productos</a>
       <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5; opacity:.7;">Operaciones</p>
       <a href="solicitudes.html" class="sidebar-link">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         Solicitudes
       </a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5; opacity:.7;" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'">Administración</p>
+      <a href="usuarios.html" class="sidebar-link" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Usuarios</a>
     </nav>
 
     <!-- User section -->
@@ -112,7 +148,7 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <span class="text-xs" style="color:#9CA3AF;">Viernes, 12 Jun 2026</span>
+        <span class="text-xs" style="color:#9CA3AF;" x-text="new Date().toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'short', year:'numeric' })"></span>
         <a href="solicitud-crear.html"
            class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium"
            style="background-color:#2C5F7A;"
@@ -134,8 +170,8 @@
           <div class="flex items-start justify-between">
             <div>
               <p class="text-xs font-medium mb-2" style="color:#4A7FA5;">Total Empresas</p>
-              <p class="text-3xl font-bold" style="color:#1A2B3C;">24</p>
-              <p class="text-xs mt-1" style="color:#6B7280;">+3 este mes</p>
+              <p class="text-3xl font-bold" style="color:#1A2B3C;" x-text="statsLoading ? '…' : kpi.empresas"></p>
+              <a href="empresas.html" class="text-xs mt-1 inline-block" style="color:#4A7FA5;">Ver empresas →</a>
             </div>
             <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#E8EEF4;">
               <svg class="w-5 h-5" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
@@ -146,8 +182,8 @@
           <div class="flex items-start justify-between">
             <div>
               <p class="text-xs font-medium mb-2" style="color:#4A7FA5;">Total Solicitudes</p>
-              <p class="text-3xl font-bold" style="color:#1A2B3C;">147</p>
-              <p class="text-xs mt-1" style="color:#6B7280;">+12 este mes</p>
+              <p class="text-3xl font-bold" style="color:#1A2B3C;" x-text="statsLoading ? '…' : kpi.total"></p>
+              <a href="solicitudes.html" class="text-xs mt-1 inline-block" style="color:#4A7FA5;">Ver todas →</a>
             </div>
             <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#E8EEF4;">
               <svg class="w-5 h-5" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -158,7 +194,7 @@
           <div class="flex items-start justify-between">
             <div>
               <p class="text-xs font-medium mb-2" style="color:#D97706;">Pendientes</p>
-              <p class="text-3xl font-bold" style="color:#1A2B3C;">18</p>
+              <p class="text-3xl font-bold" style="color:#1A2B3C;" x-text="statsLoading ? '…' : kpi.pendientes"></p>
               <p class="text-xs mt-1" style="color:#D97706;">Requieren atención</p>
             </div>
             <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#FEF3C7;">
@@ -170,7 +206,7 @@
           <div class="flex items-start justify-between">
             <div>
               <p class="text-xs font-medium mb-2" style="color:#059669;">Completadas</p>
-              <p class="text-3xl font-bold" style="color:#1A2B3C;">89</p>
+              <p class="text-3xl font-bold" style="color:#1A2B3C;" x-text="statsLoading ? '…' : kpi.completados"></p>
               <p class="text-xs mt-1" style="color:#059669;">Procesadas OK</p>
             </div>
             <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:#D1FAE5;">
@@ -190,7 +226,10 @@
             <a href="solicitudes.html" class="text-xs font-medium" style="color:#4A7FA5;">Ver todas →</a>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <div x-show="statsLoading" class="flex items-center justify-center py-10">
+              <svg class="w-6 h-6 animate-spin" style="color:#4A7FA5;" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+            </div>
+            <table x-show="!statsLoading" class="w-full text-sm">
               <thead>
                 <tr style="background-color:#F4F7FA;">
                   <th class="text-left text-xs font-semibold px-5 py-3" style="color:#4A7FA5;">Código</th>
@@ -201,40 +240,26 @@
                 </tr>
               </thead>
               <tbody>
-                <tr class="border-t hover:bg-[#F4F7FA] transition-colors" style="border-color:#D1DCE5;">
-                  <td class="px-5 py-3.5"><a href="solicitud-detalle.html" class="font-mono text-xs font-semibold" style="color:#2C5F7A;">P-S0147</a></td>
-                  <td class="px-5 py-3.5"><p class="text-xs font-medium" style="color:#1A2B3C;">FANALCA S.A.</p><p class="text-xs" style="color:#6B7280;">HONDA</p></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#1A2B3C;">Etiquetas tejidas</td>
-                  <td class="px-5 py-3.5"><span class="badge" style="background:#FEF3C7; color:#D97706;">PENDIENTE</span></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;">11 Jun 2026</td>
-                </tr>
-                <tr class="border-t hover:bg-[#F4F7FA] transition-colors" style="border-color:#D1DCE5;">
-                  <td class="px-5 py-3.5"><a href="solicitud-detalle.html" class="font-mono text-xs font-semibold" style="color:#2C5F7A;">P-S0146</a></td>
-                  <td class="px-5 py-3.5"><p class="text-xs font-medium" style="color:#1A2B3C;">NCS MODA S.A.S</p><p class="text-xs" style="color:#6B7280;">VÉLEZ</p></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#1A2B3C;">Hangtags impresos</td>
-                  <td class="px-5 py-3.5"><span class="badge" style="background:#DBEAFE; color:#2563EB;">CONFIRMAR</span></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;">10 Jun 2026</td>
-                </tr>
-                <tr class="border-t hover:bg-[#F4F7FA] transition-colors" style="border-color:#D1DCE5;">
-                  <td class="px-5 py-3.5"><a href="solicitud-detalle.html" class="font-mono text-xs font-semibold" style="color:#2C5F7A;">P-S0145</a></td>
-                  <td class="px-5 py-3.5"><p class="text-xs font-medium" style="color:#1A2B3C;">PRACTIPOLOS</p><p class="text-xs" style="color:#6B7280;">POLO CLUB</p></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#1A2B3C;">Etiquetas bordadas</td>
-                  <td class="px-5 py-3.5"><span class="badge" style="background:#F3F4F6; color:#6B7280;">BORRADOR</span></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;">09 Jun 2026</td>
-                </tr>
-                <tr class="border-t hover:bg-[#F4F7FA] transition-colors" style="border-color:#D1DCE5;">
-                  <td class="px-5 py-3.5"><a href="solicitud-detalle.html" class="font-mono text-xs font-semibold" style="color:#2C5F7A;">P-S0144</a></td>
-                  <td class="px-5 py-3.5"><p class="text-xs font-medium" style="color:#1A2B3C;">TEXTILES DEL VALLE</p><p class="text-xs" style="color:#6B7280;">QUEST</p></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#1A2B3C;">Parches bordados</td>
-                  <td class="px-5 py-3.5"><span class="badge" style="background:#FEF3C7; color:#D97706;">PENDIENTE</span></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;">08 Jun 2026</td>
-                </tr>
-                <tr class="border-t hover:bg-[#F4F7FA] transition-colors" style="border-color:#D1DCE5;">
-                  <td class="px-5 py-3.5"><a href="solicitud-detalle.html" class="font-mono text-xs font-semibold" style="color:#2C5F7A;">P-S0143</a></td>
-                  <td class="px-5 py-3.5"><p class="text-xs font-medium" style="color:#1A2B3C;">NCS MODA S.A.S</p><p class="text-xs" style="color:#6B7280;">AMERICANINO</p></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#1A2B3C;">Estampado serigrafía</td>
-                  <td class="px-5 py-3.5"><span class="badge" style="background:#FEE2E2; color:#DC2626;">CANCELADO</span></td>
-                  <td class="px-5 py-3.5 text-xs" style="color:#6B7280;">06 Jun 2026</td>
+                <template x-for="s in solicitudesRecientes" :key="s.id">
+                  <tr class="border-t hover:bg-[#F4F7FA] transition-colors" style="border-color:#D1DCE5;">
+                    <td class="px-5 py-3.5">
+                      <a :href="'solicitud-detalle.html?id=' + s.id" class="font-mono text-xs font-semibold" style="color:#2C5F7A;" x-text="s.codigo"></a>
+                    </td>
+                    <td class="px-5 py-3.5">
+                      <p class="text-xs font-medium" style="color:#1A2B3C;" x-text="s.empresaRazonSocial || '—'"></p>
+                      <p class="text-xs" style="color:#6B7280;" x-text="s.marcaNombre || ''"></p>
+                    </td>
+                    <td class="px-5 py-3.5 text-xs" style="color:#1A2B3C;" x-text="s.productoNombre || s.detalleProducto || '—'"></td>
+                    <td class="px-5 py-3.5">
+                      <span class="badge"
+                            :style="`background:${estadoColors[s.estado]?.bg ?? '#F3F4F6'};color:${estadoColors[s.estado]?.color ?? '#6B7280'};`"
+                            x-text="s.estado"></span>
+                    </td>
+                    <td class="px-5 py-3.5 text-xs" style="color:#6B7280;" x-text="imsasFechaCorta(s.creadoEn)"></td>
+                  </tr>
+                </template>
+                <tr x-show="!statsLoading && solicitudesRecientes.length === 0">
+                  <td colspan="5" class="px-5 py-10 text-center text-xs" style="color:#9CA3AF;">No hay solicitudes registradas aún.</td>
                 </tr>
               </tbody>
             </table>
@@ -269,24 +294,24 @@
             <h2 class="text-sm font-semibold mb-4" style="color:#1A2B3C;">Distribución de estados</h2>
             <div class="space-y-3">
               <div>
-                <div class="flex justify-between text-xs mb-1"><span style="color:#059669; font-weight:500;">Completadas</span><span style="color:#1A2B3C; font-weight:600;">89</span></div>
-                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full" style="width:60%; background-color:#34D399;"></div></div>
+                <div class="flex justify-between text-xs mb-1"><span style="color:#059669;font-weight:500;">Completadas</span><span style="color:#1A2B3C;font-weight:600;" x-text="statsLoading ? '…' : stats.COMPLETADO"></span></div>
+                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full transition-all" style="background-color:#34D399;" :style="'width:' + pct(stats.COMPLETADO)"></div></div>
               </div>
               <div>
-                <div class="flex justify-between text-xs mb-1"><span style="color:#2563EB; font-weight:500;">Por confirmar</span><span style="color:#1A2B3C; font-weight:600;">12</span></div>
-                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full" style="width:8%; background-color:#60A5FA;"></div></div>
+                <div class="flex justify-between text-xs mb-1"><span style="color:#2563EB;font-weight:500;">Por confirmar</span><span style="color:#1A2B3C;font-weight:600;" x-text="statsLoading ? '…' : stats.CONFIRMAR"></span></div>
+                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full transition-all" style="background-color:#60A5FA;" :style="'width:' + pct(stats.CONFIRMAR)"></div></div>
               </div>
               <div>
-                <div class="flex justify-between text-xs mb-1"><span style="color:#D97706; font-weight:500;">Pendientes</span><span style="color:#1A2B3C; font-weight:600;">18</span></div>
-                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full" style="width:12%; background-color:#FBBF24;"></div></div>
+                <div class="flex justify-between text-xs mb-1"><span style="color:#D97706;font-weight:500;">Pendientes</span><span style="color:#1A2B3C;font-weight:600;" x-text="statsLoading ? '…' : stats.PENDIENTE"></span></div>
+                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full transition-all" style="background-color:#FBBF24;" :style="'width:' + pct(stats.PENDIENTE)"></div></div>
               </div>
               <div>
-                <div class="flex justify-between text-xs mb-1"><span style="color:#6B7280; font-weight:500;">Borradores</span><span style="color:#1A2B3C; font-weight:600;">22</span></div>
-                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full" style="width:15%; background-color:#9CA3AF;"></div></div>
+                <div class="flex justify-between text-xs mb-1"><span style="color:#6B7280;font-weight:500;">Borradores</span><span style="color:#1A2B3C;font-weight:600;" x-text="statsLoading ? '…' : stats.BORRADOR"></span></div>
+                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full transition-all" style="background-color:#9CA3AF;" :style="'width:' + pct(stats.BORRADOR)"></div></div>
               </div>
               <div>
-                <div class="flex justify-between text-xs mb-1"><span style="color:#DC2626; font-weight:500;">Cancelados</span><span style="color:#1A2B3C; font-weight:600;">6</span></div>
-                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full" style="width:4%; background-color:#F87171;"></div></div>
+                <div class="flex justify-between text-xs mb-1"><span style="color:#DC2626;font-weight:500;">Cancelados</span><span style="color:#1A2B3C;font-weight:600;" x-text="statsLoading ? '…' : stats.CANCELADO"></span></div>
+                <div class="h-2 rounded-full overflow-hidden" style="background-color:#E5E7EB;"><div class="h-full rounded-full transition-all" style="background-color:#F87171;" :style="'width:' + pct(stats.CANCELADO)"></div></div>
               </div>
             </div>
           </div>

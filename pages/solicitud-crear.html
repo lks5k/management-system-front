@@ -5,59 +5,167 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nueva Solicitud — IMSAS Gestión</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/app.css">
+  <script src="../assets/js/api.js"></script>
   <script src="../assets/js/app.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
 <div class="flex h-screen overflow-hidden"
   x-data="{
     sidebarOpen: window.innerWidth >= 1024,
-    form: {
-      empresa:'', contacto:'', marca:'', tipo:'',
-      producto:'', cantidad:'', tecnica:'', material:'', medidas:'', colores:'',
-      observaciones:'', estado:'BORRADOR'
-    },
-    errors: {},
+    session: null,
+    editMode: false,
+    solicitudId: null,
+    loading: true,
+    saving: false,
     saved: false,
+    error: '',
+    errors: {},
+    form: {
+      empresaId: '', contactoId: '', marcaId: '', productoId: '',
+      detalleProducto: '', tipo: '', descripcion: '', cantidad: '',
+      tecnica: '', ancho: '', largo: '', coloresFrente: '', coloresReverso: '',
+      costura: '', ordenCompra: '', precioReferencia: '', abono: '',
+      observaciones: '', cantidadVersionesEntregadas: ''
+    },
+    empresasList: [],
+    contactosList: [],
+    marcasList: [],
+    productosList: [],
     files: [],
-    contactosList: {
-      'FANALCA S.A.': [{id:1,nombre:'Laura Martínez',cargo:'Compradora'},{id:2,nombre:'Carlos Ruiz',cargo:'Diseñador'},{id:3,nombre:'Andrea López',cargo:'Coord. Producción'}],
-      'NCS MODA S.A.S': [{id:4,nombre:'María Torres',cargo:'Gerente Comercial'},{id:5,nombre:'Jorge Silva',cargo:'Diseñador'}],
-      'PRACTIPOLOS': [{id:6,nombre:'Pedro Gómez',cargo:'Gerente'}],
-      'TEXTILES DEL VALLE': [{id:7,nombre:'Rosa Herrera',cargo:'Compradora'},{id:8,nombre:'Luis Cardona',cargo:'Diseñador Textil'}],
+    async init() {
+      this.session = imsasRequireAuth();
+      if (!this.session) return;
+      const params = new URLSearchParams(window.location.search);
+      this.solicitudId = params.get('id');
+      this.editMode    = !!this.solicitudId;
+      try {
+        const [empPage, prodPage] = await Promise.all([
+          ImsasEmpresas.listar({ size: 200 }),
+          ImsasProductos.listar({ size: 200 })
+        ]);
+        this.empresasList = empPage.content;
+        this.productosList = prodPage.content;
+        if (this.editMode) {
+          const s = await ImsasSolicitudes.obtener(this.solicitudId);
+          if (s.estado !== 'BORRADOR') {
+            alert('Solo se pueden editar solicitudes en estado BORRADOR.');
+            window.location.href = 'solicitud-detalle.html?id=' + this.solicitudId;
+            return;
+          }
+          this.form.empresaId    = s.empresaId    || '';
+          this.form.contactoId   = s.contactoId   || '';
+          this.form.marcaId      = s.marcaId      || '';
+          this.form.productoId   = s.productoId   || '';
+          this.form.detalleProducto = s.detalleProducto || '';
+          this.form.tipo         = s.tipo         || '';
+          this.form.descripcion  = s.descripcion  || '';
+          this.form.cantidad     = s.cantidad     != null ? String(s.cantidad) : '';
+          this.form.tecnica      = s.tecnica      || '';
+          this.form.ancho        = s.ancho        != null ? String(s.ancho)   : '';
+          this.form.largo        = s.largo        != null ? String(s.largo)   : '';
+          this.form.coloresFrente  = s.coloresFrente  != null ? String(s.coloresFrente)  : '';
+          this.form.coloresReverso = s.coloresReverso != null ? String(s.coloresReverso) : '';
+          this.form.costura      = s.costura      || '';
+          this.form.ordenCompra  = s.ordenCompra  || '';
+          this.form.precioReferencia = s.precioReferencia != null ? String(s.precioReferencia) : '';
+          this.form.abono        = s.abono        != null ? String(s.abono)   : '';
+          this.form.observaciones = s.observaciones || '';
+          this.form.cantidadVersionesEntregadas = s.cantidadVersionesEntregadas != null ? String(s.cantidadVersionesEntregadas) : '';
+          if (s.empresaId) await this.cargarDatosEmpresa(s.empresaId);
+        }
+      } catch (err) {
+        this.error = imsasErrorMsg(err);
+      } finally {
+        this.loading = false;
+      }
     },
-    marcasList: {
-      'FANALCA S.A.': ['HONDA','QUEST','GAS','CHEVIGNON','ESPRIT'],
-      'NCS MODA S.A.S': ['VÉLEZ','AMERICANINO','NALSANI'],
-      'PRACTIPOLOS': ['POLO CLUB','SPORT WEAR'],
-      'TEXTILES DEL VALLE': ['TEJIDOS ANDINOS','HILO FINO'],
+    async cargarDatosEmpresa(empresaId) {
+      if (!empresaId) { this.contactosList = []; this.marcasList = []; return; }
+      try {
+        const [ctPage, mkPage] = await Promise.all([
+          ImsasContactos.listarPorEmpresa(empresaId),
+          ImsasMarcas.listarPorEmpresa(empresaId)
+        ]);
+        this.contactosList = ctPage.content ?? ctPage;
+        this.marcasList    = mkPage.content ?? mkPage;
+      } catch { this.contactosList = []; this.marcasList = []; }
     },
-    get contactosFiltered() { return this.contactosList[this.form.empresa] || []; },
-    get marcasFiltered() { return this.marcasList[this.form.empresa] || []; },
-    get codigoPreview() { return 'P-S0148'; },
+    async onEmpresaChange() {
+      this.form.contactoId = '';
+      this.form.marcaId    = '';
+      await this.cargarDatosEmpresa(this.form.empresaId);
+    },
+    buildPayload() {
+      const p = {
+        empresaId:  this.form.empresaId  || null,
+        contactoId: this.form.contactoId || null,
+        marcaId:    this.form.marcaId    || null,
+        productoId: this.form.productoId || null,
+        detalleProducto: this.form.detalleProducto.trim() || null,
+        tipo:        this.form.tipo       || null,
+        descripcion: this.form.descripcion.trim() || null,
+        cantidad:    this.form.cantidad   ? parseInt(this.form.cantidad, 10) : null,
+        tecnica:     this.form.tecnica    || null,
+        ancho:       this.form.ancho      ? parseFloat(this.form.ancho)  : null,
+        largo:       this.form.largo      ? parseFloat(this.form.largo)  : null,
+        coloresFrente:  this.form.coloresFrente  ? parseInt(this.form.coloresFrente, 10)  : null,
+        coloresReverso: this.form.coloresReverso ? parseInt(this.form.coloresReverso, 10) : null,
+        costura:     this.form.costura    || null,
+        ordenCompra: this.form.ordenCompra.trim() || null,
+        precioReferencia: this.form.precioReferencia ? parseFloat(this.form.precioReferencia) : null,
+        abono:       this.form.abono      ? parseFloat(this.form.abono)  : null,
+        observaciones: this.form.observaciones.trim() || null,
+        cantidadVersionesEntregadas: (this.form.tipo === 'DISEÑO' && this.form.cantidadVersionesEntregadas)
+          ? parseInt(this.form.cantidadVersionesEntregadas, 10) : null
+      };
+      return p;
+    },
     validate() {
       this.errors = {};
-      if (!this.form.empresa) this.errors.empresa = 'Requerido';
-      if (!this.form.contacto) this.errors.contacto = 'Requerido';
-      if (!this.form.marca) this.errors.marca = 'Requerido';
-      if (!this.form.tipo) this.errors.tipo = 'Requerido';
-      if (!this.form.producto.trim()) this.errors.producto = 'Requerido';
-      if (!this.form.cantidad.trim()) this.errors.cantidad = 'Requerido';
+      if (!this.form.empresaId) this.errors.empresa = 'Requerido';
+      if (!this.form.tipo)      this.errors.tipo     = 'Requerido';
+      if (!this.form.cantidad || isNaN(parseInt(this.form.cantidad, 10)))
+        this.errors.cantidad = 'Ingrese una cantidad válida';
+      if (!this.form.tecnica)   this.errors.tecnica  = 'Requerido';
       return Object.keys(this.errors).length === 0;
     },
-    saveDraft() {
-      this.form.estado = 'BORRADOR';
-      this.saved = true;
-      setTimeout(() => { this.saved = false; window.location.href = 'solicitudes.html'; }, 1500);
+    async saveDraft() {
+      this.saving = true;
+      this.error = '';
+      try {
+        const payload = this.buildPayload();
+        if (this.editMode) {
+          await ImsasSolicitudes.actualizar(this.solicitudId, payload);
+        } else {
+          await ImsasSolicitudes.crear(payload);
+        }
+        this.saved = true;
+        setTimeout(() => window.location.href = 'solicitudes.html', 1400);
+      } catch (err) { this.error = imsasErrorMsg(err); }
+      finally { this.saving = false; }
     },
-    submit() {
+    async submit() {
       if (!this.validate()) return;
-      this.form.estado = 'CONFIRMAR';
-      this.saved = true;
-      setTimeout(() => { this.saved = false; window.location.href = 'solicitud-detalle.html'; }, 1500);
+      this.saving = true;
+      this.error = '';
+      try {
+        const payload = this.buildPayload();
+        let solicitud;
+        if (this.editMode) {
+          solicitud = await ImsasSolicitudes.actualizar(this.solicitudId, payload);
+        } else {
+          solicitud = await ImsasSolicitudes.crear(payload);
+        }
+        const id = solicitud?.id ?? this.solicitudId;
+        await ImsasSolicitudes.cambiarEstado(id, { nuevoEstado: 'CONFIRMAR' });
+        this.saved = true;
+        setTimeout(() => window.location.href = 'solicitud-detalle.html?id=' + id, 1400);
+      } catch (err) { this.error = imsasErrorMsg(err); }
+      finally { this.saving = false; }
     },
     addFile(event) {
       const file = event.target.files[0];
@@ -91,13 +199,16 @@
       <a href="empresas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Empresas</a>
       <a href="contactos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Contactos</a>
       <a href="marcas.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>Marcas</a>
+      <a href="productos.html" class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Productos</a>
       <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;">Operaciones</p>
       <a href="solicitudes.html" class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Solicitudes</a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5;opacity:.7;" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'">Administración</p>
+      <a href="usuarios.html" class="sidebar-link" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Usuarios</a>
     </nav>
     <div class="p-3" style="border-top:1px solid #D1DCE5;">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color:#4A7FA5;">AM</div>
-        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;">Ana Martínez</p><p class="text-xs" style="color:#4A7FA5;">Administrador</p></div>
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background-color:#4A7FA5;" x-text="session?.initials || '?'"></div>
+        <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate" style="color:#1A2B3C;" x-text="session?.name || 'Usuario'"></p><p class="text-xs truncate" style="color:#4A7FA5;" x-text="session?.roleLabel || ''"></p></div>
         <button @click="imsasLogout()" title="Cerrar sesión"><svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
       </div>
     </div>
@@ -114,18 +225,17 @@
           </svg>
         </button>
         <div>
-          <h1 class="text-base font-semibold" style="color:#1A2B3C;">Nueva Solicitud de Producción</h1>
+          <h1 class="text-base font-semibold" style="color:#1A2B3C;" x-text="editMode ? 'Editar Solicitud' : 'Nueva Solicitud de Producción'"></h1>
           <nav class="text-xs flex items-center gap-1" style="color:#9CA3AF;">
             <a href="dashboard.html" style="color:#4A7FA5;">Inicio</a><span>/</span>
-            <a href="solicitudes.html" style="color:#4A7FA5;">Solicitudes</a><span>/</span><span>Crear</span>
+            <a href="solicitudes.html" style="color:#4A7FA5;">Solicitudes</a><span>/</span>
+            <span x-text="editMode ? 'Editar' : 'Crear'"></span>
           </nav>
         </div>
       </div>
-      <!-- Código preview -->
       <div class="flex items-center gap-3">
-        <div class="px-4 py-2 rounded-lg text-center" style="background-color:#E8EEF4;border:1px solid #D1DCE5;">
-          <p class="text-xs" style="color:#6B7280;">Código asignado (RN-06)</p>
-          <p class="font-mono font-bold text-sm" style="color:#2C5F7A;" x-text="codigoPreview"></p>
+        <div x-show="editMode" class="px-4 py-2 rounded-lg text-center" style="background-color:#E8EEF4;border:1px solid #D1DCE5;">
+          <p class="text-xs" style="color:#6B7280;">Modo edición · Solo BORRADOR</p>
         </div>
       </div>
     </header>
@@ -139,7 +249,20 @@
     <main class="flex-1 overflow-y-auto p-6">
       <div class="max-w-3xl mx-auto">
 
-        <!-- Section 1: Client Data -->
+        <!-- Loading -->
+        <div x-show="loading" class="flex items-center justify-center py-24">
+          <svg class="w-8 h-8 animate-spin" style="color:#4A7FA5;" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+        </div>
+
+        <!-- Error general -->
+        <div x-show="error && !loading" class="rounded-xl p-4 mb-5 flex items-start gap-3" style="background-color:#FEF2F2;border:1px solid #FECACA;">
+          <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#DC2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-sm" style="color:#DC2626;" x-text="error"></p>
+        </div>
+
+        <div x-show="!loading">
+
+        <!-- Section 1: Datos del cliente -->
         <div class="section-card">
           <div class="section-title">
             <span class="step-num">1</span> Datos del cliente
@@ -149,54 +272,51 @@
             <!-- Empresa -->
             <div>
               <label class="input-label">Empresa <span style="color:#EF4444;">*</span></label>
-              <select x-model="form.empresa" @change="form.contacto=''; form.marca=''"
+              <select x-model="form.empresaId" @change="onEmpresaChange()"
+                      :disabled="editMode"
                       :class="errors.empresa ? 'error' : ''" class="input-field"
+                      :style="editMode ? 'opacity:0.6;cursor:not-allowed;' : ''"
                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
                 <option value="">Seleccionar...</option>
-                <option>FANALCA S.A.</option>
-                <option>NCS MODA S.A.S</option>
-                <option>PRACTIPOLOS</option>
-                <option>TEXTILES DEL VALLE</option>
+                <template x-for="emp in empresasList" :key="emp.id">
+                  <option :value="emp.id" x-text="emp.razonSocial"></option>
+                </template>
               </select>
               <p x-show="errors.empresa" x-text="errors.empresa" class="text-xs mt-1" style="color:#EF4444;"></p>
             </div>
 
             <!-- Contacto -->
             <div>
-              <label class="input-label">Contacto <span style="color:#EF4444;">*</span></label>
-              <select x-model="form.contacto" :disabled="!form.empresa"
-                      :class="errors.contacto ? 'error' : ''" class="input-field"
-                      :style="!form.empresa ? 'opacity:0.5;cursor:not-allowed;' : ''"
-                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+              <label class="input-label">Contacto</label>
+              <select x-model="form.contactoId" :disabled="!form.empresaId" class="input-field"
+                      :style="!form.empresaId ? 'opacity:0.5;cursor:not-allowed;' : ''"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
                 <option value="">Seleccionar...</option>
-                <template x-for="c in contactosFiltered" :key="c.id">
-                  <option :value="c.nombre" x-text="c.nombre + ' — ' + c.cargo"></option>
+                <template x-for="c in contactosList" :key="c.id">
+                  <option :value="c.id" x-text="c.nombre + (c.cargo ? ' — ' + c.cargo : '')"></option>
                 </template>
               </select>
-              <p x-show="!form.empresa" class="text-xs mt-1" style="color:#9CA3AF;">Primero seleccione una empresa</p>
-              <p x-show="errors.contacto && form.empresa" x-text="errors.contacto" class="text-xs mt-1" style="color:#EF4444;"></p>
+              <p x-show="!form.empresaId" class="text-xs mt-1" style="color:#9CA3AF;">Primero seleccione una empresa</p>
             </div>
 
             <!-- Marca -->
             <div>
-              <label class="input-label">Marca <span style="color:#EF4444;">*</span></label>
-              <select x-model="form.marca" :disabled="!form.empresa"
-                      :class="errors.marca ? 'error' : ''" class="input-field"
-                      :style="!form.empresa ? 'opacity:0.5;cursor:not-allowed;' : ''"
-                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+              <label class="input-label">Marca</label>
+              <select x-model="form.marcaId" :disabled="!form.empresaId" class="input-field"
+                      :style="!form.empresaId ? 'opacity:0.5;cursor:not-allowed;' : ''"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
                 <option value="">Seleccionar...</option>
-                <template x-for="m in marcasFiltered" :key="m">
-                  <option :value="m" x-text="m"></option>
+                <template x-for="m in marcasList" :key="m.id">
+                  <option :value="m.id" x-text="m.nombre"></option>
                 </template>
               </select>
-              <p x-show="errors.marca && form.empresa" x-text="errors.marca" class="text-xs mt-1" style="color:#EF4444;"></p>
-              <a x-show="form.empresa" href="marca-form.html" class="text-xs mt-1 inline-block" style="color:#4A7FA5;">+ Nueva marca</a>
+              <a x-show="form.empresaId" :href="'marca-form.html?empresaId=' + form.empresaId" class="text-xs mt-1 inline-block" style="color:#4A7FA5;">+ Nueva marca</a>
             </div>
 
           </div>
         </div>
 
-        <!-- Section 2: Production Info -->
+        <!-- Section 2: Información de producción -->
         <div class="section-card">
           <div class="section-title">
             <span class="step-num">2</span> Información de producción
@@ -219,162 +339,147 @@
               <p x-show="errors.tipo" x-text="errors.tipo" class="text-xs mt-1" style="color:#EF4444;"></p>
             </div>
 
+            <!-- Producto -->
             <div>
-              <label class="input-label">Producto / Tipo de etiqueta <span style="color:#EF4444;">*</span></label>
-              <select x-model="form.producto" :class="errors.producto ? 'error' : ''" class="input-field"
-                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
-                <option value="">Seleccionar tipo...</option>
-                <optgroup label="Etiquetas">
-                  <option>Etiqueta tejida</option>
-                  <option>Etiqueta bordada</option>
-                  <option>Etiqueta impresa</option>
-                  <option>Etiqueta transfer</option>
-                </optgroup>
-                <optgroup label="Accesorios">
-                  <option>Hangtag impreso</option>
-                  <option>Parche bordado</option>
-                  <option>Parche tejido</option>
-                  <option>Patch termoadhesivo</option>
-                </optgroup>
-                <optgroup label="Estampados">
-                  <option>Estampado serigrafía</option>
-                  <option>Sublimación</option>
-                  <option>Transfer digital</option>
-                  <option>Bordado directo</option>
-                </optgroup>
+              <label class="input-label">Producto</label>
+              <select x-model="form.productoId" class="input-field"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                <option value="">Seleccionar producto...</option>
+                <template x-for="p in productosList" :key="p.id">
+                  <option :value="p.id" x-text="p.nombre"></option>
+                </template>
               </select>
-              <p x-show="errors.producto" x-text="errors.producto" class="text-xs mt-1" style="color:#EF4444;"></p>
             </div>
 
+            <!-- Detalle producto -->
+            <div>
+              <label class="input-label">Detalle del producto</label>
+              <input type="text" x-model="form.detalleProducto" maxlength="200" class="input-field"
+                     placeholder="Descripción específica del producto..."
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+            <!-- Cantidad -->
             <div>
               <label class="input-label">Cantidad <span style="color:#EF4444;">*</span></label>
-              <input type="text" x-model="form.cantidad" :class="errors.cantidad ? 'error' : ''" class="input-field"
-                     placeholder="Ej: 5,000 unidades"
+              <input type="number" x-model="form.cantidad" min="1" :class="errors.cantidad ? 'error' : ''" class="input-field"
+                     placeholder="Ej: 5000"
                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
               <p x-show="errors.cantidad" x-text="errors.cantidad" class="text-xs mt-1" style="color:#EF4444;"></p>
             </div>
 
+            <!-- Técnica -->
             <div>
-              <label class="input-label">Técnica</label>
-              <select x-model="form.tecnica" class="input-field"
-                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+              <label class="input-label">Técnica <span style="color:#EF4444;">*</span></label>
+              <select x-model="form.tecnica" :class="errors.tecnica ? 'error' : ''" class="input-field"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
                 <option value="">Seleccionar técnica...</option>
-                <option>Tejido jacquard</option>
-                <option>Bordado plano</option>
-                <option>Serigrafía al agua</option>
-                <option>Serigrafía plastisol</option>
-                <option>Transfer sublimación</option>
-                <option>Transfer digital</option>
-                <option>Impresión digital</option>
+                <template x-for="t in ['DIGITAL','SUBLIMACION','FLEXOGRAFIA','LITOGRAFIA','SCREEN','TEJIDA','TRANSFER']" :key="t">
+                  <option :value="t" x-text="t"></option>
+                </template>
+              </select>
+              <p x-show="errors.tecnica" x-text="errors.tecnica" class="text-xs mt-1" style="color:#EF4444;"></p>
+            </div>
+
+            <!-- Ancho -->
+            <div>
+              <label class="input-label">Ancho (cm)</label>
+              <input type="number" step="0.01" x-model="form.ancho" class="input-field"
+                     placeholder="Ej: 3.5"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+            <!-- Largo -->
+            <div>
+              <label class="input-label">Largo (cm)</label>
+              <input type="number" step="0.01" x-model="form.largo" class="input-field"
+                     placeholder="Ej: 5.0"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+            <!-- Colores frente -->
+            <div>
+              <label class="input-label">Colores frente</label>
+              <input type="number" min="0" x-model="form.coloresFrente" class="input-field"
+                     placeholder="Ej: 2"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+            <!-- Colores reverso -->
+            <div>
+              <label class="input-label">Colores reverso</label>
+              <input type="number" min="0" x-model="form.coloresReverso" class="input-field"
+                     placeholder="Ej: 1"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+            <!-- Costura -->
+            <div>
+              <label class="input-label">Costura</label>
+              <select x-model="form.costura" class="input-field"
+                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                <option value="">Sin especificar</option>
+                <template x-for="c in ['ARRIBA','ABAJO','IZQUIERDA','DERECHA','PARA_DOBLAR','TODOS_LOS_LADOS','SIN_COSTURA','TRAPECIO','A_DOS_LADOS']" :key="c">
+                  <option :value="c" x-text="c.replace(/_/g,' ')"></option>
+                </template>
               </select>
             </div>
 
-            <div>
-              <label class="input-label">Material</label>
-              <input type="text" x-model="form.material" class="input-field"
-                     placeholder="Ej: Satín, tafetán, sarga..."
-                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
-            </div>
-
-            <div>
-              <label class="input-label">Medidas</label>
-              <input type="text" x-model="form.medidas" class="input-field"
-                     placeholder="Ej: 3cm x 5cm"
-                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
-            </div>
-
-            <div>
-              <label class="input-label">Colores</label>
-              <input type="text" x-model="form.colores" class="input-field"
-                     placeholder="Ej: 2 colores — pantone 286C / blanco"
+            <!-- Versiones (solo DISEÑO) -->
+            <div x-show="form.tipo === 'DISEÑO'">
+              <label class="input-label">Cant. versiones entregadas</label>
+              <input type="number" min="0" x-model="form.cantidadVersionesEntregadas" class="input-field"
+                     placeholder="Ej: 3"
                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
             </div>
 
           </div>
         </div>
 
-        <!-- Section 3: Observations -->
+        <!-- Section 3: Datos comerciales -->
         <div class="section-card">
           <div class="section-title">
-            <span class="step-num">3</span> Observaciones
+            <span class="step-num">3</span> Datos comerciales
           </div>
-          <textarea x-model="form.observaciones" rows="4" class="input-field resize-none"
-                    placeholder="Instrucciones especiales, referencias de color, acabados requeridos, notas del cliente..."
-                    onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'"></textarea>
-          <p class="text-xs mt-2" style="color:#9CA3AF;">Incluya cualquier detalle relevante para el proceso de producción.</p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div>
+              <label class="input-label">Orden de compra</label>
+              <input type="text" x-model="form.ordenCompra" maxlength="60" class="input-field"
+                     placeholder="Nro. orden del cliente..."
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+            <div>
+              <label class="input-label">Precio referencia</label>
+              <input type="number" step="0.01" min="0" x-model="form.precioReferencia" class="input-field"
+                     placeholder="0.00"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+            <div>
+              <label class="input-label">Abono</label>
+              <input type="number" step="0.01" min="0" x-model="form.abono" class="input-field"
+                     placeholder="0.00"
+                     onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+          </div>
         </div>
 
-        <!-- Section 4: Files -->
+        <!-- Section 4: Observaciones -->
         <div class="section-card">
           <div class="section-title">
-            <span class="step-num">4</span> Archivos adjuntos
+            <span class="step-num">4</span> Descripción y observaciones
           </div>
-
-          <!-- Upload area -->
-          <div class="rounded-xl p-6 text-center border-2 border-dashed mb-4 cursor-pointer transition-colors"
-               style="border-color:#D1DCE5;background-color:#F4F7FA;"
-               onmouseover="this.style.borderColor='#4A7FA5';this.style.backgroundColor='#E8EEF4'"
-               onmouseout="this.style.borderColor='#D1DCE5';this.style.backgroundColor='#F4F7FA'"
-               onclick="document.getElementById('fileInput').click()">
-            <svg class="w-8 h-8 mx-auto mb-3" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-            <p class="text-sm font-medium" style="color:#1A2B3C;">Arrastrar archivos aquí o hacer clic para seleccionar</p>
-            <p class="text-xs mt-1" style="color:#9CA3AF;">PDF, AI, EPS, JPG, PNG · Máx. 20 MB por archivo</p>
-            <input id="fileInput" type="file" class="hidden" @change="addFile($event)" multiple accept=".pdf,.ai,.eps,.jpg,.jpeg,.png">
-          </div>
-
-          <!-- File list -->
-          <div x-show="files.length > 0" class="space-y-2">
-            <template x-for="(file, i) in files" :key="i">
-              <div class="flex items-center justify-between px-4 py-3 rounded-lg" style="background-color:#F4F7FA;border:1px solid #D1DCE5;">
-                <div class="flex items-center gap-3">
-                  <svg class="w-5 h-5 flex-shrink-0" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  <div>
-                    <p class="text-xs font-medium" style="color:#1A2B3C;" x-text="file.name"></p>
-                    <p class="text-xs" style="color:#9CA3AF;" x-text="file.size"></p>
-                  </div>
-                </div>
-                <button type="button" @click="removeFile(i)" class="text-xs px-2 py-1 rounded" style="color:#DC2626;background:#FEF2F2;">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-              </div>
-            </template>
-          </div>
-
-          <!-- Corporate files section -->
-          <div class="mt-5 pt-5" style="border-top:1px solid #D1DCE5;">
-            <p class="text-xs font-semibold mb-3" style="color:#1A2B3C;">Archivos corporativos disponibles</p>
-            <p class="text-xs mb-3" style="color:#6B7280;">Seleccione archivos previamente cargados de la empresa para asociarlos a esta solicitud:</p>
-            <div class="space-y-2">
-              <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                     style="background-color:#F4F7FA;border:1px solid #D1DCE5;"
-                     onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
-                <input type="checkbox" class="w-4 h-4" style="accent-color:#4A7FA5;">
-                <svg class="w-4 h-4" style="color:#D97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <div class="flex-1">
-                  <p class="text-xs font-medium" style="color:#1A2B3C;">Logo_FANALCA_v3_2024.ai</p>
-                  <p class="text-xs" style="color:#9CA3AF;">Logo corporativo · v3 · 15 Mar 2024</p>
-                </div>
-              </label>
-              <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                     style="background-color:#F4F7FA;border:1px solid #D1DCE5;"
-                     onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
-                <input type="checkbox" class="w-4 h-4" style="accent-color:#4A7FA5;">
-                <svg class="w-4 h-4" style="color:#4A7FA5;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <div class="flex-1">
-                  <p class="text-xs font-medium" style="color:#1A2B3C;">Manual_de_Marca_HONDA_2023.pdf</p>
-                  <p class="text-xs" style="color:#9CA3AF;">Manual de marca · v1 · 10 Ene 2023</p>
-                </div>
-              </label>
-              <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                     style="background-color:#F4F7FA;border:1px solid #D1DCE5;"
-                     onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
-                <input type="checkbox" class="w-4 h-4" style="accent-color:#4A7FA5;">
-                <svg class="w-4 h-4" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <div class="flex-1">
-                  <p class="text-xs font-medium" style="color:#1A2B3C;">Arte_etiqueta_aprobado_HONDA_2024.jpg</p>
-                  <p class="text-xs" style="color:#9CA3AF;">Arte aprobado · v2 · 05 Feb 2024</p>
-                </div>
-              </label>
+          <div class="space-y-4">
+            <div>
+              <label class="input-label">Descripción</label>
+              <textarea x-model="form.descripcion" rows="3" class="input-field resize-none"
+                        placeholder="Descripción general de la solicitud..."
+                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'"></textarea>
+            </div>
+            <div>
+              <label class="input-label">Observaciones adicionales</label>
+              <textarea x-model="form.observaciones" rows="3" class="input-field resize-none"
+                        placeholder="Instrucciones especiales, referencias de color, acabados requeridos..."
+                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'"></textarea>
             </div>
           </div>
         </div>
@@ -394,29 +499,33 @@
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between mb-6">
           <a href="solicitudes.html" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium"
              style="background:white;color:#1A2B3C;border:1px solid #D1DCE5;">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
             Cancelar
           </a>
           <div class="flex items-center gap-3">
-            <button type="button" @click="saveDraft()"
+            <button type="button" @click="saveDraft()" :disabled="saving"
                     class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium"
                     style="background:white;color:#1A2B3C;border:1px solid #D1DCE5;"
                     onmouseover="this.style.backgroundColor='#F4F7FA'" onmouseout="this.style.backgroundColor='white'">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+              <svg x-show="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+              <svg x-show="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
               Guardar borrador
             </button>
-            <button type="button" @click="submit()"
+            <button type="button" @click="submit()" :disabled="saving"
                     class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-white"
                     style="background-color:#2C5F7A;"
                     onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-              Enviar solicitud
+              <svg x-show="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              <svg x-show="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+              Confirmar y enviar
             </button>
           </div>
         </div>
+
+        </div><!-- /x-show="!loading" -->
 
       </div>
     </main>
