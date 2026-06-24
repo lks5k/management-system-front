@@ -7,7 +7,7 @@
  * En caso de 401 redirige automáticamente al login.
  */
 
-const IMSAS_API_BASE = 'http://localhost:8080/api/v1';
+const IMSAS_API_BASE = 'https://management-system-back-8g5r.onrender.com/api/v1';
 const IMSAS_TOKEN_KEY = 'imsas_token';
 
 // ─── Gestión de token ────────────────────────────────────────────────────────
