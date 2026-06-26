@@ -10,6 +10,37 @@
 const IMSAS_API_BASE = 'https://management-system-back-8g5r.onrender.com/api/v1';
 const IMSAS_TOKEN_KEY = 'imsas_token';
 
+// ─── Conversión de claves camelCase ↔ snake_case ─────────────────────────────
+//
+// El backend usa Jackson con SNAKE_CASE: todos los campos JSON entran y salen
+// en snake_case. El frontend trabaja en camelCase (convención JS).
+// Estas utilidades hacen la traducción en la capa de transporte para que ningún
+// formulario tenga que preocuparse por el formato del servidor.
+
+function _keyToSnake(str) {
+  return str.replace(/[A-Z]/g, ch => `_${ch.toLowerCase()}`);
+}
+
+function _keyToCamel(str) {
+  return str.replace(/_([a-z])/g, (_, ch) => ch.toUpperCase());
+}
+
+/**
+ * Convierte recursivamente las claves de un valor (objeto, array o primitivo).
+ * @param {any} value
+ * @param {(key: string) => string} converter
+ * @returns {any}
+ */
+function _convertKeys(value, converter) {
+  if (Array.isArray(value))
+    return value.map(item => _convertKeys(item, converter));
+  if (value !== null && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [converter(k), _convertKeys(v, converter)])
+    );
+  return value;
+}
+
 // ─── Gestión de token ────────────────────────────────────────────────────────
 
 function imsasGetToken() {
@@ -29,9 +60,13 @@ function imsasClearToken() {
 /**
  * Wrapper de fetch que:
  *  - Añade el header Authorization Bearer si hay token.
+ *  - Convierte el body saliente de camelCase → snake_case (convención Jackson).
  *  - En 401 limpia sesión y redirige al login.
  *  - En errores HTTP lanza { status, message, errors }.
- *  - En éxito retorna `body.data` directamente.
+ *  - En éxito convierte `body.data` de snake_case → camelCase y lo retorna.
+ *
+ * Los formularios siempre trabajan en camelCase; esta función hace la traducción
+ * de forma transparente en ambas direcciones.
  *
  * @param {string} path   Ruta relativa, ej. "/empresas" o "/empresas/uuid"
  * @param {RequestInit} options   Opciones fetch estándar
@@ -45,6 +80,11 @@ async function imsasApi(path, options = {}) {
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers ?? {})
   };
+
+  // Serializar body convirtiendo camelCase → snake_case
+  if (options.body) {
+    options = { ...options, body: JSON.stringify(_convertKeys(JSON.parse(options.body), _keyToSnake)) };
+  }
 
   let response;
   try {
@@ -78,7 +118,8 @@ async function imsasApi(path, options = {}) {
     throw { status: response.status, message: firstError, errors: body?.errors ?? [] };
   }
 
-  return body.data;
+  // Deserializar data convirtiendo snake_case → camelCase
+  return _convertKeys(body.data, _keyToCamel);
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────

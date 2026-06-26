@@ -369,3 +369,7 @@ La versión 1 se considera terminada cuando:
 - La conversión Diseño → Pedido funciona con un clic
 - Toda la información queda almacenada en PostgreSQL
 - Los permisos por rol están correctamente aplicados
+
+# 11. Parámetros Generales
+
+- Formato de Peticiones y Respuestas (API Contract): Se establece un formato estricto de SNAKE_CASE en todas las llaves de los payloads JSON que viajan por la red (tanto en envíos POST/PUT/PATCH como en respuestas GET del servidor). Estrategia de Acoplamiento: Para mantener el código del Frontend limpio e idiomático (camelCase nativo en formularios y vistas .html), la traducción de datos se realiza de forma bidireccional y transparente mediante un interceptor centralizado de transformación de claves dentro de la capa de transporte (api.js). Se prohíbe explícitamente que los componentes de la interfaz de usuario realicen conversiones manuales. Ejemplo de Envío: razonSocial (Frontend) $\rightarrow$ razon_social (Wire/API)Ejemplo de Recepción: es_principal (Wire/API) $\rightarrow$ esPrincipal (Frontend)
