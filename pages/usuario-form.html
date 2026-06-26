@@ -26,7 +26,7 @@
     error: '',
     errors: {},
     roles: ['SUPERADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'SALES_REP'],
-    rolLabels: { SUPERADMIN: 'Super Administrador', ADMIN: 'Administrador', MANAGER: 'Gerente', OPERATOR: 'Operador', SALES_REP: 'Asesor Comercial' },
+    rolLabels: { SUPERADMIN: 'Super Administrador', ADMIN: 'Administrador', MANAGER: 'Operario líder', OPERATOR: 'Operario', SALES_REP: 'Asesor Comercial' },
     form: { nombre: '', email: '', password: '', rol: '' },
     async init() {
       this.session = imsasRequireAuth();

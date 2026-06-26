@@ -22,7 +22,7 @@
     error: '',
     usuarios: [],
     togglingId: null,
-    rolLabels: { SUPERADMIN: 'Super Admin', ADMIN: 'Administrador', MANAGER: 'Gerente', OPERATOR: 'Operador', SALES_REP: 'Asesor Comercial' },
+    rolLabels: { SUPERADMIN: 'Super Admin', ADMIN: 'Administrador', MANAGER: 'Operario líder', OPERATOR: 'Operario', SALES_REP: 'Asesor Comercial' },
     get filtered() {
       const q = this.search.toLowerCase();
       return this.usuarios.filter(u =>

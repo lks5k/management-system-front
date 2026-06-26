@@ -83,8 +83,8 @@ function _rolLabel(rol) {
   const labels = {
     SUPERADMIN: 'Super Administrador',
     ADMIN:      'Administrador',
-    MANAGER:    'Gerente',
-    OPERATOR:   'Operador',
+    MANAGER:    'Operario líder',
+    OPERATOR:   'Operario',
     SALES_REP:  'Asesor Comercial'
   };
   return labels[rol] ?? rol;
