@@ -13,7 +13,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-<div class="flex h-screen overflow-hidden"
+<div class="flex h-screen overflow-hidden" x-cloak x-show="session"
   x-data="{
     sidebarOpen: window.innerWidth >= 1024,
     session: null,

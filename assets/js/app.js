@@ -98,3 +98,17 @@ function _initials(nombre) {
     .map(p => p[0]?.toUpperCase() ?? '')
     .join('');
 }
+
+// ─── Guard de autenticación temprana ─────────────────────────────────────────
+//
+// Se ejecuta de forma SÍNCRONA en el <head> (app.js no tiene defer),
+// antes de que el browser renderice el <body>.
+// Cubre todas las páginas bajo /pages/ sin modificar ningún HTML individual.
+// window.location.replace() evita que la URL protegida quede en el historial.
+// ─────────────────────────────────────────────────────────────────────────────
+;(function imsasEarlyAuthGuard() {
+  if (!window.location.pathname.includes('/pages/')) return;
+  if (!imsasGetSession() || !imsasGetToken()) {
+    window.location.replace('../index.html');
+  }
+})();
