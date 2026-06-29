@@ -58,7 +58,7 @@
       if (!this.form.email.trim()) this.errors.email = 'El correo es requerido';
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email.trim())) this.errors.email = 'Ingrese un correo válido';
       if (!this.editMode && !this.form.password) this.errors.password = 'La contraseña es requerida';
-      if (!this.editMode && this.form.password && this.form.password.length < 6) this.errors.password = 'Mínimo 6 caracteres';
+      if (!this.editMode && this.form.password && this.form.password.length < 8) this.errors.password = 'Mínimo 8 caracteres';
       if (!this.form.rol) this.errors.rol = 'Seleccione un rol';
       return Object.keys(this.errors).length === 0;
     },
@@ -207,7 +207,7 @@
                 <label class="input-label">Contraseña <span style="color:#EF4444;">*</span></label>
                 <input type="password" x-model="form.password"
                        :class="errors.password ? 'error' : ''" class="input-field"
-                       placeholder="Mínimo 6 caracteres"
+                       placeholder="Mínimo 8 caracteres"
                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
                 <p x-show="errors.password" x-text="errors.password" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>

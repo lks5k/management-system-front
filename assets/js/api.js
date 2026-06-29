@@ -114,7 +114,7 @@ async function imsasApi(path, options = {}) {
   }
 
   if (!response.ok) {
-    const firstError = body?.errors?.[0]?.mensaje ?? body?.message ?? 'Error inesperado del servidor.';
+    const firstError = body?.errors?.[0]?.message ?? body?.message ?? 'Error inesperado del servidor.';
     throw { status: response.status, message: firstError, errors: body?.errors ?? [] };
   }
 

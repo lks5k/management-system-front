@@ -134,6 +134,14 @@
       return Object.keys(this.errors).length === 0;
     },
     async saveDraft() {
+      this.errors = {};
+      if (!this.form.empresaId) this.errors.empresa = 'Requerido';
+      if (!this.form.tipo)      this.errors.tipo     = 'Requerido';
+      if (!this.form.cantidad || isNaN(parseInt(this.form.cantidad, 10)))
+        this.errors.cantidad = 'Ingrese una cantidad válida';
+      if (!this.form.tecnica)   this.errors.tecnica  = 'Requerido';
+      if (Object.keys(this.errors).length > 0) return;
+
       this.saving = true;
       this.error = '';
       try {
