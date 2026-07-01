@@ -334,6 +334,14 @@ const ImsasSolicitudes = {
 
   eliminar(id) {
     return imsasApi(`/solicitudes/${id}`, { method: 'DELETE' });
+  },
+
+  /** @param {string} id @param {string} motivo (obligatorio, max 500 chars) */
+  versionarBd(id, motivo) {
+    return imsasApi(`/solicitudes/${id}/version-bd`, {
+      method: 'PATCH',
+      body: JSON.stringify({ motivo })
+    });
   }
 };
 

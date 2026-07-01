@@ -29,7 +29,8 @@
       detalleProducto: '', tipo: '', descripcion: '', cantidad: '',
       tecnica: '', ancho: '', largo: '', coloresFrente: '', coloresReverso: '',
       costura: '', ordenCompra: '', precioReferencia: '', abono: '',
-      observaciones: '', cantidadVersionesEntregadas: ''
+      observaciones: '', cantidadVersionesEntregadas: '',
+      solicitudOrigenId: ''
     },
     empresasList: [],
     contactosList: [],
@@ -75,6 +76,7 @@
           this.form.abono        = s.abono        != null ? String(s.abono)   : '';
           this.form.observaciones = s.observaciones || '';
           this.form.cantidadVersionesEntregadas = s.cantidadVersionesEntregadas != null ? String(s.cantidadVersionesEntregadas) : '';
+          this.form.solicitudOrigenId = s.solicitudOrigenId || '';
           if (s.empresaId) await this.cargarDatosEmpresa(s.empresaId);
         }
       } catch (err) {
@@ -120,7 +122,8 @@
         abono:       this.form.abono      ? parseFloat(this.form.abono)  : null,
         observaciones: this.form.observaciones.trim() || null,
         cantidadVersionesEntregadas: (this.form.tipo === 'DISEÑO' && this.form.cantidadVersionesEntregadas)
-          ? parseInt(this.form.cantidadVersionesEntregadas, 10) : null
+          ? parseInt(this.form.cantidadVersionesEntregadas, 10) : null,
+        solicitudOrigenId: this.form.solicitudOrigenId || null
       };
       return p;
     },
@@ -439,6 +442,18 @@
               <input type="number" min="0" x-model="form.cantidadVersionesEntregadas" class="input-field"
                      placeholder="Ej: 3"
                      onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+            </div>
+
+            <!-- Solicitud origen (RN-15 — solo PEDIDO o REPOSICION) -->
+            <div x-show="form.tipo === 'PEDIDO' || form.tipo === 'REPOSICION'" class="md:col-span-2">
+              <label class="input-label">Solicitud de diseño origen</label>
+              <input type="text" x-model="form.solicitudOrigenId" class="input-field"
+                     placeholder="UUID de la solicitud DISEÑO de origen (RN-15)"
+                     onfocus="this.style.borderColor='#4A7FA5'"
+                     onblur="this.style.borderColor='#D1DCE5'">
+              <p class="text-xs mt-1" style="color:#9CA3AF;">
+                Vincula este <strong x-text="form.tipo || 'PEDIDO/REPOSICIÓN'"></strong> con su solicitud de DISEÑO original.
+              </p>
             </div>
 
           </div>
