@@ -197,7 +197,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-              <!-- Empresa -->
+              <!-- Empresa (creación) -->
               <div class="md:col-span-2" x-show="!isEdit">
                 <label class="input-label">Empresa <span style="color:#EF4444;">*</span></label>
                 <select x-model="form.empresaId" :class="errors.empresa ? 'error' : ''" class="input-field"
@@ -208,6 +208,15 @@
                   </template>
                 </select>
                 <p x-show="errors.empresa" x-text="errors.empresa" class="text-xs mt-1.5" style="color:#EF4444;"></p>
+              </div>
+
+              <!-- Empresa (edición — solo lectura) -->
+              <div class="md:col-span-2" x-show="isEdit">
+                <label class="input-label">Empresa</label>
+                <div class="input-field" style="background-color:#F4F7FA;cursor:default;color:#6B7280;">
+                  <span x-text="(empresasList.find(e => e.id === form.empresaId)?.razonSocial) || '—'"></span>
+                </div>
+                <p class="text-xs mt-1" style="color:#9CA3AF;">La empresa no se puede cambiar después de crear el contacto.</p>
               </div>
 
               <!-- Nombre -->
