@@ -29,6 +29,9 @@
     showVersionBdModal: false,
     versionBdMotivo: '',
     versionBdMotivoError: false,
+    showConvertirModal: false,
+    convertirForm: { tipo: '', cantidad: '', ancho: '', largo: '', ordenCompra: '', observaciones: '' },
+    convertirErrors: {},
     estadoColors: {
       'BORRADOR':   { bg:'#F3F4F6', color:'#6B7280' },
       'CONFIRMAR':  { bg:'#DBEAFE', color:'#2563EB' },
@@ -106,6 +109,31 @@
         this.versionBdMotivo = '';
       } catch (err) {
         this.error = imsasErrorMsg(err);
+      } finally {
+        this.saving = false;
+      }
+    },
+    async confirmarConvertir() {
+      this.convertirErrors = {};
+      if (!this.convertirForm.tipo) { this.convertirErrors.tipo = 'Seleccione el tipo destino'; return; }
+      this.showConvertirModal = false;
+      this.saving = true;
+      this.error = '';
+      try {
+        const payload = { tipo: this.convertirForm.tipo };
+        const cant = parseInt(this.convertirForm.cantidad, 10);
+        if (!isNaN(cant) && cant > 0)            payload.cantidad    = cant;
+        const ancho = parseFloat(this.convertirForm.ancho);
+        if (!isNaN(ancho) && ancho > 0)          payload.ancho       = ancho;
+        const largo = parseFloat(this.convertirForm.largo);
+        if (!isNaN(largo) && largo > 0)          payload.largo       = largo;
+        if (this.convertirForm.ordenCompra.trim())  payload.ordenCompra  = this.convertirForm.ordenCompra.trim();
+        if (this.convertirForm.observaciones.trim()) payload.observaciones = this.convertirForm.observaciones.trim();
+        const nueva = await ImsasSolicitudes.convertir(this.s.id, payload);
+        window.location.href = 'solicitud-detalle.html?id=' + nueva.id;
+      } catch (err) {
+        this.error = imsasErrorMsg(err);
+        this.showConvertirModal = true;
       } finally {
         this.saving = false;
       }
@@ -234,6 +262,18 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7h16M9 3h6"/>
             </svg>
             Versionar BD
+          </button>
+
+          <!-- Convertir solicitud — SUPERADMIN/ADMIN/SALES_REP, solo cuando COMPLETADO -->
+          <button x-show="['SUPERADMIN','ADMIN','SALES_REP'].includes(session?.role) && estado === 'COMPLETADO'"
+                  @click="showConvertirModal = true" :disabled="saving"
+                  class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                  style="background-color:#F0FDF4;color:#059669;border:1px solid #6EE7B7;"
+                  onmouseover="this.style.backgroundColor='#DCFCE7'" onmouseout="this.style.backgroundColor='#F0FDF4'">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
+            Convertir solicitud
           </button>
 
           <!-- Editar (solo BORRADOR) -->
@@ -443,6 +483,104 @@
       </div><!-- /x-show="!loading && s" -->
 
     </main>
+  </div>
+
+  <!-- Modal: Convertir solicitud -->
+  <div x-show="showConvertirModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0" style="background-color:rgba(0,0,0,0.4);" @click="showConvertirModal=false"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 z-10">
+
+      <!-- Header del modal -->
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background-color:#D1FAE5;">
+          <svg class="w-5 h-5" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold" style="color:#1A2B3C;">Convertir solicitud</h3>
+          <p class="text-xs" style="color:#6B7280;">Genera una nueva solicitud a partir de <span class="font-mono font-semibold" x-text="s?.codigo"></span></p>
+        </div>
+      </div>
+
+      <!-- Tipo destino (obligatorio) -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1.5" style="color:#1A2B3C;">
+          Tipo destino <span style="color:#EF4444;">*</span>
+        </label>
+        <select x-model="convertirForm.tipo"
+                class="w-full p-2.5 rounded-lg text-sm outline-none"
+                :style="convertirErrors.tipo ? 'border:1.5px solid #EF4444;' : 'border:1.5px solid #D1DCE5;'"
+                onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=''">
+          <option value="">Seleccionar tipo...</option>
+          <option value="DISEÑO">DISEÑO</option>
+          <option value="PEDIDO">PEDIDO</option>
+          <option value="REPOSICION">REPOSICIÓN</option>
+        </select>
+        <p x-show="convertirErrors.tipo" class="text-xs mt-1" style="color:#EF4444;" x-text="convertirErrors.tipo"></p>
+      </div>
+
+      <!-- Campos opcionales -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:#6B7280;">Cantidad</label>
+          <input type="number" min="1" x-model="convertirForm.cantidad"
+                 class="w-full p-2.5 rounded-lg text-sm outline-none"
+                 style="border:1.5px solid #D1DCE5;"
+                 placeholder="Ej: 500"
+                 onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:#6B7280;">Orden de compra</label>
+          <input type="text" x-model="convertirForm.ordenCompra"
+                 class="w-full p-2.5 rounded-lg text-sm outline-none"
+                 style="border:1.5px solid #D1DCE5;"
+                 placeholder="Ej: OC-2026-001"
+                 onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:#6B7280;">Ancho (cm)</label>
+          <input type="number" min="0" step="0.01" x-model="convertirForm.ancho"
+                 class="w-full p-2.5 rounded-lg text-sm outline-none"
+                 style="border:1.5px solid #D1DCE5;"
+                 placeholder="Ej: 10.5"
+                 onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:#6B7280;">Largo (cm)</label>
+          <input type="number" min="0" step="0.01" x-model="convertirForm.largo"
+                 class="w-full p-2.5 rounded-lg text-sm outline-none"
+                 style="border:1.5px solid #D1DCE5;"
+                 placeholder="Ej: 15.0"
+                 onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+        </div>
+      </div>
+
+      <!-- Observaciones opcionales -->
+      <div class="mb-5">
+        <label class="block text-xs font-medium mb-1" style="color:#6B7280;">Observaciones</label>
+        <textarea x-model="convertirForm.observaciones" rows="2" maxlength="500"
+                  class="w-full p-2.5 rounded-lg text-sm resize-none outline-none"
+                  style="border:1.5px solid #D1DCE5;"
+                  placeholder="Observaciones adicionales para la solicitud generada (opcional)"
+                  onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'"></textarea>
+        <p class="text-xs mt-1 text-right" style="color:#9CA3AF;" x-text="(convertirForm.observaciones || '').length + '/500'"></p>
+      </div>
+
+      <div class="flex items-center justify-end gap-3">
+        <button @click="showConvertirModal=false; convertirErrors={};"
+                class="px-4 py-2 rounded-lg text-sm font-medium"
+                style="background:white;color:#1A2B3C;border:1px solid #D1DCE5;">
+          Cancelar
+        </button>
+        <button @click="confirmarConvertir()" :disabled="saving"
+                class="px-5 py-2 rounded-lg text-sm font-medium text-white"
+                style="background-color:#059669;"
+                onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+          Confirmar conversión
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: Versionar BD (RN-08/09) -->

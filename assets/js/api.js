@@ -342,6 +342,14 @@ const ImsasSolicitudes = {
       method: 'PATCH',
       body: JSON.stringify({ motivo })
     });
+  },
+
+  /** @param {string} id @param {{ tipo: string, cantidad?: number, ancho?: number, largo?: number, ordenCompra?: string, observaciones?: string }} data */
+  convertir(id, data) {
+    return imsasApi(`/solicitudes/${id}/convertir`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   }
 };
 
