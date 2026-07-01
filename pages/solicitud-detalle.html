@@ -364,6 +364,22 @@
               <div x-show="s?.precioReferencia != null" class="field-row"><span class="field-label">Precio referencia</span><span class="field-value" x-text="s?.precioReferencia != null ? '$ ' + s.precioReferencia.toLocaleString('es-CO') : '—'"></span></div>
               <div x-show="s?.abono != null" class="field-row"><span class="field-label">Abono</span><span class="field-value" x-text="s?.abono != null ? '$ ' + s.abono.toLocaleString('es-CO') : '—'"></span></div>
               <div x-show="s?.cantidadVersionesEntregadas != null" class="field-row"><span class="field-label">Versiones entregadas</span><span class="field-value" x-text="s?.cantidadVersionesEntregadas"></span></div>
+
+              <!-- RN-19: Arte generado automáticamente al completar un DISEÑO -->
+              <div x-show="s?.tipo === 'DISEÑO' && s?.arteId" class="field-row">
+                <span class="field-label">Arte generado</span>
+                <span class="field-value flex items-center gap-2 flex-wrap">
+                  <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold"
+                        style="background:#D1FAE5;color:#059669;">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Versión <span x-text="s?.versionArteGenerada ?? '—'"></span>
+                  </span>
+                  <span class="text-xs font-mono" style="color:#6B7280;" x-show="s?.arteCodigo" x-text="s?.arteCodigo"></span>
+                </span>
+              </div>
+
               <div x-show="s?.descripcion" class="field-row"><span class="field-label">Descripción</span>
                 <p class="field-value text-xs leading-relaxed" style="color:#6B7280;" x-text="s?.descripcion"></p>
               </div>
