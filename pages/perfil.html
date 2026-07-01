@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil — IMSAS Gestión</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body>
+<div class="flex h-screen overflow-hidden" x-cloak x-show="session"
+  x-data="{
+    sidebarOpen: window.innerWidth >= 1024,
+    session: null,
+    saving: false,
+    success: false,
+    error: '',
+    form: {
+      passwordActual:    '',
+      passwordNuevo:     '',
+      confirmarPassword: ''
+    },
+    errors: {},
+    showPasswordActual:    false,
+    showPasswordNuevo:     false,
+    showConfirmarPassword: false,
+    async init() {
+      this.session = imsasRequireAuth();
+    },
+    validate() {
+      this.errors = {};
+      if (!this.form.passwordNuevo)
+        this.errors.passwordNuevo = 'La nueva contraseña es obligatoria';
+      else if (this.form.passwordNuevo.length < 8)
+        this.errors.passwordNuevo = 'Mínimo 8 caracteres';
+      else if (this.form.passwordNuevo.length > 100)
+        this.errors.passwordNuevo = 'Máximo 100 caracteres';
+      if (!this.form.confirmarPassword)
+        this.errors.confirmarPassword = 'Confirma la nueva contraseña';
+      else if (this.form.passwordNuevo !== this.form.confirmarPassword)
+        this.errors.confirmarPassword = 'Las contraseñas no coinciden';
+      return Object.keys(this.errors).length === 0;
+    },
+    async guardar() {
+      this.error   = '';
+      this.success = false;
+      if (!this.validate()) return;
+      this.saving = true;
+      try {
+        const payload = { passwordNuevo: this.form.passwordNuevo };
+        if (this.form.passwordActual.trim())
+          payload.passwordActual = this.form.passwordActual;
+        await ImsasUsuarios.cambiarPassword(this.session.id, payload);
+        this.success = true;
+        this.form.passwordActual    = '';
+        this.form.passwordNuevo     = '';
+        this.form.confirmarPassword = '';
+        this.errors = {};
+      } catch(e) {
+        this.error = imsasErrorMsg(e);
+      } finally {
+        this.saving = false;
+      }
+    }
+  }"
+  x-init="init()">
+
+  <!-- ===== SIDEBAR ===== -->
+  <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
+       class="fixed inset-0 z-20 bg-black/30 lg:hidden"></div>
+  <aside class="flex-shrink-0 flex flex-col h-screen fixed top-0 left-0 z-30 overflow-y-auto"
+         x-show="sidebarOpen" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="-translate-x-full"
+         x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="translate-x-0"
+         x-transition:leave-end="-translate-x-full"
+         style="width:240px; background-color:#E8EEF4; border-right:1px solid #D1DCE5;">
+
+    <div class="h-16 flex items-center px-4 gap-3 flex-shrink-0" style="border-bottom:1px solid #D1DCE5;">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background-color:#4A7FA5;">
+        <svg class="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-sm font-bold leading-tight" style="color:#1A2B3C;">IMSAS</p>
+        <p class="text-xs leading-tight" style="color:#4A7FA5;">Gestión de Producción</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 py-4 px-3 space-y-1">
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mb-2" style="color:#4A7FA5; opacity:.7;">Principal</p>
+      <a href="dashboard.html" class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5; opacity:.7;">Maestros</p>
+      <a href="empresas.html" class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        Empresas
+      </a>
+      <a href="contactos.html" class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Contactos
+      </a>
+      <a href="marcas.html" class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+        Marcas
+      </a>
+      <a href="productos.html" class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Productos
+      </a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5; opacity:.7;">Operaciones</p>
+      <a href="solicitudes.html" class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Solicitudes
+      </a>
+      <p class="text-xs font-semibold uppercase tracking-wider px-2 mt-5 mb-2" style="color:#4A7FA5; opacity:.7;" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'">Administración</p>
+      <a href="usuarios.html" class="sidebar-link" x-show="session?.role === 'SUPERADMIN' || session?.role === 'ADMIN'">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        Usuarios
+      </a>
+    </nav>
+
+    <!-- User section -->
+    <div class="p-3 flex-shrink-0" style="border-top:1px solid #D1DCE5;">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+             style="background-color:#4A7FA5;"
+             x-text="session?.initials || '?'">
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold truncate" style="color:#1A2B3C;" x-text="session?.name || 'Usuario'"></p>
+          <p class="text-xs truncate" style="color:#4A7FA5;" x-text="session?.roleLabel || ''"></p>
+        </div>
+        <a href="perfil.html" title="Mi perfil" style="color:#4A7FA5;">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+        </a>
+        <button @click="imsasLogout()" title="Cerrar sesión" style="color:#4A7FA5;">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="flex-1 flex flex-col overflow-hidden ml-0 lg:ml-60">
+
+    <!-- Top Header -->
+    <header class="h-16 flex items-center justify-between px-4 lg:px-6 flex-shrink-0"
+            style="background:white; border-bottom:1px solid #D1DCE5;">
+      <div class="flex items-center gap-3">
+        <button @click="sidebarOpen = !sidebarOpen"
+                class="lg:hidden p-1.5 rounded-lg -ml-1" style="color:#4A7FA5;">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-base font-semibold" style="color:#1A2B3C;">Mi Perfil</h1>
+          <p class="text-xs" style="color:#4A7FA5;">Información de cuenta y seguridad</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto p-6">
+      <div class="max-w-2xl mx-auto space-y-6">
+
+        <!-- Información de la cuenta -->
+        <div class="bg-white rounded-xl" style="border:1px solid #D1DCE5;">
+          <div class="px-6 py-4" style="border-bottom:1px solid #D1DCE5;">
+            <h2 class="text-sm font-semibold" style="color:#1A2B3C;">Información de la cuenta</h2>
+            <p class="text-xs mt-0.5" style="color:#6B7280;">Datos de solo lectura. Para modificarlos contacta a un administrador.</p>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
+                   style="background-color:#4A7FA5;"
+                   x-text="session?.initials || '?'">
+              </div>
+              <div>
+                <p class="text-base font-semibold" style="color:#1A2B3C;" x-text="session?.name || '—'"></p>
+                <p class="text-xs mt-0.5" style="color:#4A7FA5;" x-text="session?.roleLabel || '—'"></p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label class="input-label">Correo electrónico</label>
+                <div class="input-field text-sm" style="background-color:#F4F7FA; cursor:default; color:#6B7280;" x-text="session?.email || '—'"></div>
+              </div>
+              <div>
+                <label class="input-label">Rol en el sistema</label>
+                <div class="input-field text-sm" style="background-color:#F4F7FA; cursor:default; color:#6B7280;" x-text="session?.roleLabel || '—'"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cambiar contraseña -->
+        <div class="bg-white rounded-xl" style="border:1px solid #D1DCE5;">
+          <div class="px-6 py-4" style="border-bottom:1px solid #D1DCE5;">
+            <h2 class="text-sm font-semibold" style="color:#1A2B3C;">Cambiar contraseña</h2>
+            <p class="text-xs mt-0.5" style="color:#6B7280;">La nueva contraseña debe tener al menos 8 caracteres.</p>
+          </div>
+          <div class="p-6 space-y-4">
+
+            <!-- Alerta éxito -->
+            <div x-show="success" x-cloak
+                 class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm"
+                 style="background-color:#D1FAE5; color:#065F46;">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Contraseña actualizada correctamente.
+            </div>
+
+            <!-- Alerta error -->
+            <div x-show="error" x-cloak
+                 class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm"
+                 style="background-color:#FEE2E2; color:#991B1B;">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span x-text="error"></span>
+            </div>
+
+            <!-- Contraseña actual -->
+            <div>
+              <label class="input-label">Contraseña actual
+                <span class="font-normal" style="color:#9CA3AF;">(requerida si el backend lo exige)</span>
+              </label>
+              <div class="relative">
+                <input :type="showPasswordActual ? 'text' : 'password'"
+                       x-model="form.passwordActual"
+                       class="input-field pr-10"
+                       placeholder="Tu contraseña actual"
+                       autocomplete="current-password"
+                       @input="error = ''; success = false;"
+                       onfocus="this.style.borderColor='#4A7FA5'"
+                       onblur="this.style.borderColor='#D1DCE5'">
+                <button type="button"
+                        @click="showPasswordActual = !showPasswordActual"
+                        class="absolute inset-y-0 right-3 flex items-center"
+                        style="color:#9CA3AF;">
+                  <svg x-show="!showPasswordActual" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  <svg x-show="showPasswordActual" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Nueva contraseña -->
+            <div>
+              <label class="input-label">Nueva contraseña <span style="color:#EF4444;">*</span></label>
+              <div class="relative">
+                <input :type="showPasswordNuevo ? 'text' : 'password'"
+                       x-model="form.passwordNuevo"
+                       class="input-field pr-10"
+                       :class="errors.passwordNuevo ? 'border-red-400' : ''"
+                       placeholder="Mínimo 8 caracteres"
+                       maxlength="100"
+                       autocomplete="new-password"
+                       @input="errors.passwordNuevo = ''; error = ''; success = false;"
+                       onfocus="this.style.borderColor='#4A7FA5'"
+                       onblur="this.style.borderColor=errors.passwordNuevo ? '#F87171' : '#D1DCE5'">
+                <button type="button"
+                        @click="showPasswordNuevo = !showPasswordNuevo"
+                        class="absolute inset-y-0 right-3 flex items-center"
+                        style="color:#9CA3AF;">
+                  <svg x-show="!showPasswordNuevo" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  <svg x-show="showPasswordNuevo" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                  </svg>
+                </button>
+              </div>
+              <p x-show="errors.passwordNuevo" x-text="errors.passwordNuevo"
+                 class="text-xs mt-1.5" style="color:#EF4444;"></p>
+            </div>
+
+            <!-- Confirmar nueva contraseña -->
+            <div>
+              <label class="input-label">Confirmar nueva contraseña <span style="color:#EF4444;">*</span></label>
+              <div class="relative">
+                <input :type="showConfirmarPassword ? 'text' : 'password'"
+                       x-model="form.confirmarPassword"
+                       class="input-field pr-10"
+                       :class="errors.confirmarPassword ? 'border-red-400' : ''"
+                       placeholder="Repite la nueva contraseña"
+                       maxlength="100"
+                       autocomplete="new-password"
+                       @input="errors.confirmarPassword = ''; error = ''; success = false;"
+                       onfocus="this.style.borderColor='#4A7FA5'"
+                       onblur="this.style.borderColor=errors.confirmarPassword ? '#F87171' : '#D1DCE5'">
+                <button type="button"
+                        @click="showConfirmarPassword = !showConfirmarPassword"
+                        class="absolute inset-y-0 right-3 flex items-center"
+                        style="color:#9CA3AF;">
+                  <svg x-show="!showConfirmarPassword" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  <svg x-show="showConfirmarPassword" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                  </svg>
+                </button>
+              </div>
+              <p x-show="errors.confirmarPassword" x-text="errors.confirmarPassword"
+                 class="text-xs mt-1.5" style="color:#EF4444;"></p>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <a href="dashboard.html"
+                 class="px-4 py-2 rounded-lg text-sm font-medium"
+                 style="background-color:#F4F7FA; color:#1A2B3C; border:1px solid #D1DCE5;"
+                 onmouseover="this.style.backgroundColor='#E8EEF4'"
+                 onmouseout="this.style.backgroundColor='#F4F7FA'">
+                Cancelar
+              </a>
+              <button @click="guardar()"
+                      :disabled="saving"
+                      class="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium text-white transition-opacity"
+                      style="background-color:#2C5F7A;"
+                      :style="saving ? 'opacity:.6;cursor:not-allowed;' : ''"
+                      onmouseover="if(!this.disabled) this.style.backgroundColor='#1A4A60'"
+                      onmouseout="if(!this.disabled) this.style.backgroundColor='#2C5F7A'">
+                <svg x-show="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span x-text="saving ? 'Guardando...' : 'Actualizar contraseña'"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

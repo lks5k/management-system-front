@@ -292,6 +292,14 @@ const ImsasUsuarios = {
       method: 'PATCH',
       body: JSON.stringify(data)
     });
+  },
+
+  /** @param {string} id @param {{ passwordActual?: string, passwordNuevo: string }} data */
+  cambiarPassword(id, data) {
+    return imsasApi(`/usuarios/${id}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
   }
 };
 
