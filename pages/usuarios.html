@@ -197,14 +197,15 @@
                   <td class="px-5 py-3.5 text-right">
                     <div class="flex items-center justify-end gap-2">
                       <a :href="'usuario-form.html?id=' + u.id"
+                         x-show="!(session?.role === 'ADMIN' && u.rol === 'SUPERADMIN')"
                          class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
                          style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
                          onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         Editar
                       </a>
-                      <!-- No se puede desactivar el propio usuario -->
-                      <button x-show="u.id !== session?.id"
+                      <!-- No se puede desactivar el propio usuario ni ADMIN puede operar sobre SUPERADMIN -->
+                      <button x-show="u.id !== session?.id && !(session?.role === 'ADMIN' && u.rol === 'SUPERADMIN')"
                               @click="toggleEstado(u)" :disabled="togglingId === u.id"
                               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
                               :style="u.activo ? 'background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;' : 'background-color:#F0FDF4;color:#059669;border:1px solid #BBF7D0;'"
