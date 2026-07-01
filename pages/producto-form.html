@@ -46,7 +46,7 @@
     validate() {
       this.errors = {};
       if (!this.form.nombre.trim()) this.errors.nombre = 'El nombre del producto es requerido';
-      else if (this.form.nombre.trim().length > 100) this.errors.nombre = 'El nombre no puede superar 100 caracteres';
+      else if (this.form.nombre.trim().length > 120) this.errors.nombre = 'El nombre no puede superar 120 caracteres';
       return Object.keys(this.errors).length === 0;
     },
     async save() {
@@ -163,7 +163,7 @@
               <!-- Nombre -->
               <div>
                 <label class="input-label">Nombre <span style="color:#EF4444;">*</span></label>
-                <input type="text" x-model="form.nombre" maxlength="100"
+                <input type="text" x-model="form.nombre" maxlength="120"
                        :class="errors.nombre ? 'error' : ''" class="input-field"
                        placeholder="Ej: Camiseta básica cuello redondo"
                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">

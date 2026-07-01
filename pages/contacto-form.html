@@ -38,9 +38,15 @@
       this.errors = {};
       if (!this.form.empresaId) this.errors.empresa = 'Seleccione una empresa';
       if (!this.form.nombre.trim()) this.errors.nombre = 'El nombre es requerido';
+      else if (this.form.nombre.trim().length > 120) this.errors.nombre = 'Máximo 120 caracteres';
+      if (this.form.cargo && this.form.cargo.length > 100) this.errors.cargo = 'Máximo 100 caracteres';
+      if (this.form.telefono && this.form.telefono.length > 30) this.errors.telefono = 'Máximo 30 caracteres';
       if (!this.form.emailPrincipal.trim()) this.errors.emailPrincipal = 'El correo es requerido';
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.emailPrincipal))
         this.errors.emailPrincipal = 'Formato de correo inválido (RN-05)';
+      if (this.form.emailSecundario.trim() &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.emailSecundario.trim()))
+        this.errors.emailSecundario = 'Formato de correo secundario inválido';
       return Object.keys(this.errors).length === 0;
     },
     buildRequest() {
@@ -208,7 +214,7 @@
               <div>
                 <label class="input-label">Nombre completo <span style="color:#EF4444;">*</span></label>
                 <input type="text" x-model="form.nombre" :class="errors.nombre ? 'error' : ''" class="input-field"
-                       placeholder="Nombre y apellido"
+                       placeholder="Nombre y apellido" maxlength="120"
                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
                 <p x-show="errors.nombre" x-text="errors.nombre" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
@@ -216,9 +222,10 @@
               <!-- Cargo -->
               <div>
                 <label class="input-label">Cargo</label>
-                <input type="text" x-model="form.cargo" class="input-field"
-                       placeholder="Ej: Compradora, Diseñador..."
-                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                <input type="text" x-model="form.cargo" :class="errors.cargo ? 'error' : ''" class="input-field"
+                       placeholder="Ej: Compradora, Diseñador..." maxlength="100"
+                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <p x-show="errors.cargo" x-text="errors.cargo" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
 
               <!-- Correo principal -->
@@ -233,17 +240,20 @@
               <!-- Correo secundario -->
               <div>
                 <label class="input-label">Correo secundario</label>
-                <input type="email" x-model="form.emailSecundario" class="input-field"
+                <input type="email" x-model="form.emailSecundario" :class="errors.emailSecundario ? 'error' : ''" class="input-field"
                        placeholder="Opcional"
-                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <p x-show="errors.emailSecundario" x-text="errors.emailSecundario"
+                   class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
 
               <!-- Teléfono -->
               <div>
                 <label class="input-label">Teléfono / Celular</label>
-                <input type="tel" x-model="form.telefono" class="input-field"
-                       placeholder="3XX XXX XXXX"
-                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                <input type="tel" x-model="form.telefono" :class="errors.telefono ? 'error' : ''" class="input-field"
+                       placeholder="3XX XXX XXXX" maxlength="30"
+                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <p x-show="errors.telefono" x-text="errors.telefono" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
 
               <!-- Es Facturación -->

@@ -55,8 +55,10 @@
     validate() {
       this.errors = {};
       if (!this.form.nombre.trim()) this.errors.nombre = 'El nombre es requerido';
+      else if (this.form.nombre.trim().length > 120) this.errors.nombre = 'Máximo 120 caracteres';
       if (!this.form.email.trim()) this.errors.email = 'El correo es requerido';
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email.trim())) this.errors.email = 'Ingrese un correo válido';
+      else if (this.form.email.trim().length > 120) this.errors.email = 'Máximo 120 caracteres';
       if (!this.editMode && !this.form.password) this.errors.password = 'La contraseña es requerida';
       if (!this.editMode && this.form.password && this.form.password.length < 8) this.errors.password = 'Mínimo 8 caracteres';
       if (!this.form.rol) this.errors.rol = 'Seleccione un rol';
@@ -187,7 +189,7 @@
                 <label class="input-label">Nombre completo <span style="color:#EF4444;">*</span></label>
                 <input type="text" x-model="form.nombre"
                        :class="errors.nombre ? 'error' : ''" class="input-field"
-                       placeholder="Ej: Carlos Rodríguez"
+                       placeholder="Ej: Carlos Rodríguez" maxlength="120"
                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
                 <p x-show="errors.nombre" x-text="errors.nombre" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
@@ -197,7 +199,7 @@
                 <label class="input-label">Correo electrónico <span style="color:#EF4444;">*</span></label>
                 <input type="email" x-model="form.email"
                        :class="errors.email ? 'error' : ''" class="input-field"
-                       placeholder="usuario@imsas.com"
+                       placeholder="usuario@imsas.com" maxlength="120"
                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
                 <p x-show="errors.email" x-text="errors.email" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>

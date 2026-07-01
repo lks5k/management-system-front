@@ -25,25 +25,65 @@
     error: null,
     contactos: [],
     marcas: [],
+    paises: [],
+    departamentos: [],
+    ciudades: [],
     form: {
       tipoDocumento: 'NIT',
       numeroDocumento: '',
       razonSocial: '',
       tipoEmpresa: '',
       direccion: '',
+      paisId: '',
+      pais: '',
+      departamento: '',
       ciudad: '',
       telefono: '',
       sitioWeb: '',
-      pais: 'Colombia'
+      diaCierreContable: null
     },
     errors: {},
     validate() {
       this.errors = {};
       if (!this.form.tipoDocumento)        this.errors.tipoDocumento = 'Requerido';
       if (!this.form.numeroDocumento.trim()) this.errors.numeroDocumento = 'El número de documento es requerido';
+      else if (this.form.numeroDocumento.trim().length > 30) this.errors.numeroDocumento = 'Máximo 30 caracteres';
       if (!this.form.razonSocial.trim())   this.errors.razonSocial = 'La razón social es requerida';
+      else if (this.form.razonSocial.trim().length > 200) this.errors.razonSocial = 'Máximo 200 caracteres';
       if (!this.form.tipoEmpresa)          this.errors.tipoEmpresa = 'Requerido';
+      if (this.form.direccion && this.form.direccion.length > 200) this.errors.direccion = 'Máximo 200 caracteres';
+      if (this.form.telefono && this.form.telefono.length > 30)    this.errors.telefono  = 'Máximo 30 caracteres';
+      if (this.form.sitioWeb && this.form.sitioWeb.length > 200)   this.errors.sitioWeb  = 'Máximo 200 caracteres';
+      if (!this.form.pais) this.errors.pais = 'Selecciona un país';
+      if (this.form.diaCierreContable !== null && this.form.diaCierreContable !== '') {
+        const dia = parseInt(this.form.diaCierreContable, 10);
+        if (isNaN(dia) || dia < 1 || dia > 31) this.errors.diaCierreContable = 'Debe ser un día entre 1 y 31';
+      }
       return Object.keys(this.errors).length === 0;
+    },
+    async onPaisChange() {
+      this.form.departamento = '';
+      this.form.ciudad = '';
+      this.ciudades = [];
+      if (!this.form.paisId) {
+        this.departamentos = [];
+        this.form.pais = '';
+        return;
+      }
+      const selected = this.paises.find(p => p.id == this.form.paisId);
+      this.form.pais = selected ? selected.nombre : '';
+      try {
+        this.departamentos = await imsasApi(`/geo/departamentos?paisId=${this.form.paisId}`);
+      } catch (_) { this.departamentos = []; }
+    },
+    async onDepartamentoChange() {
+      this.form.ciudad = '';
+      if (!this.form.departamento) { this.ciudades = []; return; }
+      const dep = this.departamentos.find(d => d.nombre === this.form.departamento);
+      if (!dep) { this.ciudades = []; return; }
+      try {
+        this.ciudades = await imsasApi(`/geo/ciudades?departamentoId=${dep.id}`);
+      } catch (_) { this.ciudades = []; }
     },
     async save() {
       if (!this.validate()) return;
@@ -66,6 +106,12 @@
     async init() {
       this.session = imsasRequireAuth();
       if (!this.session) return;
+
+      // Cargar lista de países (endpoint público, no requiere auth)
+      try {
+        this.paises = await imsasApi('/geo/paises');
+      } catch (_) { this.paises = []; }
+
       const params = new URLSearchParams(window.location.search);
       this.empresaId = params.get('id');
       if (this.empresaId) {
@@ -74,16 +120,40 @@
         try {
           const emp = await ImsasEmpresas.obtener(this.empresaId);
           this.form = {
-            tipoDocumento:  emp.tipoDocumento,
-            numeroDocumento: emp.numeroDocumento,
-            razonSocial:    emp.razonSocial,
-            tipoEmpresa:    emp.tipoEmpresa,
-            direccion:      emp.direccion   ?? '',
-            ciudad:         emp.ciudad      ?? '',
-            telefono:       emp.telefono    ?? '',
-            sitioWeb:       emp.sitioWeb    ?? '',
-            pais:           emp.pais        ?? 'Colombia'
+            tipoDocumento:     emp.tipoDocumento,
+            numeroDocumento:   emp.numeroDocumento,
+            razonSocial:       emp.razonSocial,
+            tipoEmpresa:       emp.tipoEmpresa,
+            direccion:         emp.direccion          ?? '',
+            paisId:            '',
+            pais:              emp.pais               ?? '',
+            departamento:      emp.departamento       ?? '',
+            ciudad:            emp.ciudad             ?? '',
+            telefono:          emp.telefono           ?? '',
+            sitioWeb:          emp.sitioWeb           ?? '',
+            diaCierreContable: emp.diaCierreContable  ?? null
           };
+
+          // Reconstruir cascada a partir de los valores guardados
+          if (emp.pais) {
+            const paisEncontrado = this.paises.find(p => p.nombre === emp.pais);
+            if (paisEncontrado) {
+              this.form.paisId = paisEncontrado.id;
+              try {
+                this.departamentos = await imsasApi(`/geo/departamentos?paisId=${paisEncontrado.id}`);
+              } catch (_) { this.departamentos = []; }
+
+              if (emp.departamento) {
+                const depEncontrado = this.departamentos.find(d => d.nombre === emp.departamento);
+                if (depEncontrado) {
+                  try {
+                    this.ciudades = await imsasApi(`/geo/ciudades?departamentoId=${depEncontrado.id}`);
+                  } catch (_) { this.ciudades = []; }
+                }
+              }
+            }
+          }
+
           const [ctRes, mRes] = await Promise.all([
             ImsasContactos.listarPorEmpresa(this.empresaId),
             ImsasMarcas.listarPorEmpresa(this.empresaId)
@@ -204,7 +274,7 @@
               <div>
                 <label class="input-label">Número de documento <span style="color:#EF4444;">*</span></label>
                 <input type="text" x-model="form.numeroDocumento" :class="errors.numeroDocumento ? 'error' : ''" class="input-field"
-                       placeholder="000.000.000-0"
+                       placeholder="000.000.000-0" maxlength="30"
                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
                 <p x-show="errors.numeroDocumento" x-text="errors.numeroDocumento" class="text-xs mt-1.5" style="color:#EF4444;"></p>
                 <p class="text-xs mt-1" style="color:#9CA3AF;" x-show="!errors.numeroDocumento">Debe ser único en el sistema (RN-04)</p>
@@ -213,7 +283,7 @@
               <div>
                 <label class="input-label">Razón Social <span style="color:#EF4444;">*</span></label>
                 <input type="text" x-model="form.razonSocial" :class="errors.razonSocial ? 'error' : ''" class="input-field"
-                       placeholder="Nombre legal de la empresa"
+                       placeholder="Nombre legal de la empresa" maxlength="200"
                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
                 <p x-show="errors.razonSocial" x-text="errors.razonSocial" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
@@ -234,36 +304,77 @@
 
               <div class="md:col-span-2">
                 <label class="input-label">Dirección</label>
-                <input type="text" x-model="form.direccion" class="input-field" placeholder="Calle, carrera, número..."
-                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
-              </div>
-
-              <div>
-                <label class="input-label">Ciudad</label>
-                <select x-model="form.ciudad" class="input-field" onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
-                  <option value="">Seleccionar ciudad</option>
-                  <option>Bogotá</option><option>Medellín</option><option>Cali</option>
-                  <option>Barranquilla</option><option>Cartagena</option>
-                  <option>Bucaramanga</option><option>Pereira</option><option>Manizales</option>
-                </select>
+                <input type="text" x-model="form.direccion" :class="errors.direccion ? 'error' : ''" class="input-field"
+                       placeholder="Calle, carrera, número..." maxlength="200"
+                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <p x-show="errors.direccion" x-text="errors.direccion" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
 
               <div>
                 <label class="input-label">Teléfono</label>
-                <input type="tel" x-model="form.telefono" class="input-field" placeholder="+57 X XXX XXXX"
-                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                <input type="tel" x-model="form.telefono" :class="errors.telefono ? 'error' : ''" class="input-field"
+                       placeholder="+57 X XXX XXXX" maxlength="30"
+                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <p x-show="errors.telefono" x-text="errors.telefono" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
 
               <div>
                 <label class="input-label">Sitio web</label>
-                <input type="url" x-model="form.sitioWeb" class="input-field" placeholder="https://empresa.com"
-                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                <input type="url" x-model="form.sitioWeb" :class="errors.sitioWeb ? 'error' : ''" class="input-field"
+                       placeholder="https://empresa.com" maxlength="200"
+                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <p x-show="errors.sitioWeb" x-text="errors.sitioWeb" class="text-xs mt-1.5" style="color:#EF4444;"></p>
+              </div>
+
+              <!-- Geografía en cascada: País → Departamento → Ciudad -->
+              <div>
+                <label class="input-label">País <span style="color:#EF4444;">*</span></label>
+                <select x-model="form.paisId" @change="onPaisChange()"
+                        :class="errors.pais ? 'error' : ''" class="input-field"
+                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                  <option value="">Seleccionar...</option>
+                  <template x-for="p in paises" :key="p.id">
+                    <option :value="p.id" x-text="p.nombre"></option>
+                  </template>
+                </select>
+                <p x-show="errors.pais" x-text="errors.pais" class="text-xs mt-1.5" style="color:#EF4444;"></p>
               </div>
 
               <div>
-                <label class="input-label">País</label>
-                <input type="text" x-model="form.pais" class="input-field" placeholder="Colombia"
-                       onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'">
+                <label class="input-label">Departamento / Estado</label>
+                <select x-model="form.departamento" @change="onDepartamentoChange()"
+                        :disabled="!form.paisId" class="input-field"
+                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'"
+                        :style="!form.paisId ? 'opacity:.5;cursor:not-allowed;' : ''">
+                  <option value="">Seleccionar...</option>
+                  <template x-for="d in departamentos" :key="d.id">
+                    <option :value="d.nombre" x-text="d.nombre"></option>
+                  </template>
+                </select>
+              </div>
+
+              <div>
+                <label class="input-label">Ciudad</label>
+                <select x-model="form.ciudad"
+                        :disabled="!form.departamento" class="input-field"
+                        onfocus="this.style.borderColor='#4A7FA5'" onblur="this.style.borderColor='#D1DCE5'"
+                        :style="!form.departamento ? 'opacity:.5;cursor:not-allowed;' : ''">
+                  <option value="">Seleccionar...</option>
+                  <template x-for="c in ciudades" :key="c.id">
+                    <option :value="c.nombre" x-text="c.nombre"></option>
+                  </template>
+                </select>
+              </div>
+
+              <div>
+                <label class="input-label">Día cierre contable</label>
+                <input type="number" min="1" max="31" x-model.number="form.diaCierreContable"
+                       :class="errors.diaCierreContable ? 'error' : ''" class="input-field"
+                       placeholder="Ej: 30"
+                       onfocus="this.style.borderColor='#4A7FA5'"
+                       onblur="this.style.borderColor=this.classList.contains('error')?'#EF4444':'#D1DCE5'">
+                <p x-show="errors.diaCierreContable" x-text="errors.diaCierreContable" class="text-xs mt-1.5" style="color:#EF4444;"></p>
+                <p x-show="!errors.diaCierreContable" class="text-xs mt-1" style="color:#9CA3AF;">Día del mes para el cierre contable (opcional)</p>
               </div>
 
             </div>
