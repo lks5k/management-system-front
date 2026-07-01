@@ -22,7 +22,8 @@
     error: '',
     productos: [],
     deletingId: null,
-    get isAdmin() { return this.session?.role === 'SUPERADMIN' || this.session?.role === 'ADMIN'; },
+    get isAdmin()  { return this.session?.role === 'SUPERADMIN' || this.session?.role === 'ADMIN'; },
+    get canEdit()  { return this.isAdmin; },
     get filtered() {
       const q = this.search.toLowerCase();
       return this.productos.filter(p =>
@@ -114,7 +115,8 @@
           </nav>
         </div>
       </div>
-      <a href="producto-form.html" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;" onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
+      <a href="producto-form.html" x-show="canEdit"
+         class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;" onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         Nuevo Producto
       </a>
@@ -179,7 +181,7 @@
                   <td class="px-5 py-3.5 text-xs" style="color:#6B7280;" x-text="imsasFechaCorta(p.creadoEn)"></td>
                   <td class="px-5 py-3.5 text-right">
                     <div class="flex items-center justify-end gap-2">
-                      <a :href="'producto-form.html?id=' + p.id"
+                      <a :href="'producto-form.html?id=' + p.id" x-show="canEdit"
                          class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
                          style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
                          onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">

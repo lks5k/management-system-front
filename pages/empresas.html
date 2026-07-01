@@ -22,7 +22,8 @@
     error: null,
   empresas: [],
   deletingId: null,
-  get isAdmin() { return this.session?.role === 'SUPERADMIN' || this.session?.role === 'ADMIN'; },
+  get isAdmin()  { return this.session?.role === 'SUPERADMIN' || this.session?.role === 'ADMIN'; },
+  get canEdit()  { return ['SUPERADMIN','ADMIN','SALES_REP'].includes(this.session?.role); },
   get filtered() {
       const q = this.search.toLowerCase();
       return this.empresas.filter(e =>
@@ -117,7 +118,8 @@
           </nav>
         </div>
       </div>
-      <a href="empresa-form.html" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;" onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
+      <a href="empresa-form.html" x-show="canEdit"
+         class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;" onmouseover="this.style.backgroundColor='#1A4A60'" onmouseout="this.style.backgroundColor='#2C5F7A'">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         Nueva Empresa
       </a>
@@ -182,7 +184,8 @@
                   </td>
                   <td class="px-5 py-3.5 text-right">
                     <div class="flex items-center justify-end gap-2">
-                      <a :href="'empresa-form.html?id=' + empresa.id" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium" style="background-color:#F4F7FA; color:#1A2B3C; border:1px solid #D1DCE5;" onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
+                      <a :href="'empresa-form.html?id=' + empresa.id" x-show="canEdit"
+                         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium" style="background-color:#F4F7FA; color:#1A2B3C; border:1px solid #D1DCE5;" onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         Editar
                       </a>

@@ -25,7 +25,8 @@
     empresasMap: {},
     empresasList: [],
     deletingId: null,
-    get isAdmin() { return this.session?.role === 'SUPERADMIN' || this.session?.role === 'ADMIN'; },
+    get isAdmin()  { return this.session?.role === 'SUPERADMIN' || this.session?.role === 'ADMIN'; },
+    get canEdit()  { return ['SUPERADMIN','ADMIN','SALES_REP'].includes(this.session?.role); },
     async eliminar(id) {
       if (!confirm('¿Eliminar esta marca? Esta acción no se puede deshacer.')) return;
       this.deletingId = id;
@@ -123,7 +124,8 @@
           </nav>
         </div>
       </div>
-      <a href="marca-form.html" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;">
+      <a href="marca-form.html" x-show="canEdit"
+         class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium" style="background-color:#2C5F7A;">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         Nueva Marca
       </a>
@@ -190,7 +192,7 @@
               <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
                     :style="marca.activo ? 'background:#D1FAE5;color:#059669;' : 'background:#FEE2E2;color:#DC2626;'"
                     x-text="marca.activo ? 'Activa' : 'Inactiva'"></span>
-              <a :href="'marca-form.html?id=' + marca.id + '&empresaId=' + marca.empresaId"
+              <a :href="'marca-form.html?id=' + marca.id + '&empresaId=' + marca.empresaId" x-show="canEdit"
                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
                  style="background-color:#F4F7FA;color:#1A2B3C;border:1px solid #D1DCE5;"
                  onmouseover="this.style.backgroundColor='#E8EEF4'" onmouseout="this.style.backgroundColor='#F4F7FA'">
